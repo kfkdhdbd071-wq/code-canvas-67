@@ -1,10 +1,27 @@
+import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Code, Globe, Palette, Zap, Users, Shield } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Index = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+
+  useEffect(() => {
+    if (user) {
+      navigate("/dashboard");
+    }
+  }, [user, navigate]);
+
+  const handleGetStarted = async () => {
+    if (user) {
+      navigate("/dashboard");
+    } else {
+      navigate("/auth");
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-hero">
@@ -15,8 +32,12 @@ const Index = () => {
             <Code className="h-8 w-8 text-white" />
             <span className="text-2xl font-bold text-white">كودر</span>
           </div>
-          <Button variant="outline" className="bg-white/10 border-white/20 text-white hover:bg-white hover:text-primary">
-            تسجيل الدخول
+          <Button 
+            variant="outline" 
+            className="bg-white/10 border-white/20 text-white hover:bg-white hover:text-primary"
+            onClick={handleGetStarted}
+          >
+            {user ? "لوحة التحكم" : "تسجيل الدخول"}
           </Button>
         </nav>
       </header>
@@ -42,7 +63,7 @@ const Index = () => {
               variant="hero" 
               size="lg" 
               className="text-lg px-8 py-4 h-auto"
-              onClick={() => navigate('/editor')}
+              onClick={handleGetStarted}
             >
               <Zap className="mr-2" />
               ابدأ الآن مجاناً
@@ -163,7 +184,7 @@ const Index = () => {
             variant="hero" 
             size="lg" 
             className="text-xl px-12 py-6 h-auto"
-            onClick={() => navigate('/editor')}
+            onClick={handleGetStarted}
           >
             <Code className="mr-2" />
             ابدأ التطوير الآن
