@@ -2,11 +2,13 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Code, Play, Save, Share, Home, Settings } from "lucide-react";
+import { Code, Play, Save, Share, Home, Settings, Download } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import CodeEditor from "@/components/CodeEditor";
+import JSZip from "jszip";
 
 const Editor = () => {
   const navigate = useNavigate();
@@ -169,6 +171,33 @@ document.addEventListener('click', function() {
     }
   };
 
+  const handleDownload = async () => {
+    const zip = new JSZip();
+    
+    // Add files to zip
+    zip.file("index.html", htmlCode);
+    zip.file("style.css", cssCode);
+    zip.file("script.js", jsCode);
+    
+    // Generate zip file
+    const content = await zip.generateAsync({ type: "blob" });
+    
+    // Create download link
+    const url = window.URL.createObjectURL(content);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${project?.project_name || "project"}.zip`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+    
+    toast({
+      title: "تم التحميل بنجاح",
+      description: "تم تحميل ملفات المشروع كـ ZIP",
+    });
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -205,6 +234,10 @@ document.addEventListener('click', function() {
                 <Save className="h-4 w-4 mr-2" />
                 حفظ
               </Button>
+              <Button variant="outline" size="sm" onClick={handleDownload}>
+                <Download className="h-4 w-4 mr-2" />
+                تحميل
+              </Button>
               <Button variant="default" size="sm" onClick={handlePublish}>
                 <Share className="h-4 w-4 mr-2" />
                 {project?.is_published ? "تحديث النشر" : "نشر"}
@@ -228,31 +261,28 @@ document.addEventListener('click', function() {
             </TabsList>
             
             <TabsContent value="html" className="flex-1 m-0">
-              <textarea
+              <CodeEditor
                 value={htmlCode}
-                onChange={(e) => setHtmlCode(e.target.value)}
-                className="w-full h-full p-4 font-mono text-sm bg-muted border-0 resize-none focus:outline-none"
-                dir="ltr"
+                onChange={setHtmlCode}
+                language="html"
                 placeholder="أكتب كود HTML هنا..."
               />
             </TabsContent>
             
             <TabsContent value="css" className="flex-1 m-0">
-              <textarea
+              <CodeEditor
                 value={cssCode}
-                onChange={(e) => setCssCode(e.target.value)}
-                className="w-full h-full p-4 font-mono text-sm bg-muted border-0 resize-none focus:outline-none"
-                dir="ltr"
+                onChange={setCssCode}
+                language="css"
                 placeholder="أكتب كود CSS هنا..."
               />
             </TabsContent>
             
             <TabsContent value="js" className="flex-1 m-0">
-              <textarea
+              <CodeEditor
                 value={jsCode}
-                onChange={(e) => setJsCode(e.target.value)}
-                className="w-full h-full p-4 font-mono text-sm bg-muted border-0 resize-none focus:outline-none"
-                dir="ltr"
+                onChange={setJsCode}
+                language="javascript"
                 placeholder="أكتب كود JavaScript هنا..."
               />
             </TabsContent>
