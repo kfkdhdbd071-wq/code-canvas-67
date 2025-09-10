@@ -46,6 +46,7 @@ export type Database = {
       }
       projects: {
         Row: {
+          collaboration_token: string | null
           created_at: string
           css_code: string | null
           custom_url: string | null
@@ -54,10 +55,13 @@ export type Database = {
           is_published: boolean | null
           js_code: string | null
           project_name: string
+          show_in_community: boolean | null
           updated_at: string
           user_id: string
+          view_count: number | null
         }
         Insert: {
+          collaboration_token?: string | null
           created_at?: string
           css_code?: string | null
           custom_url?: string | null
@@ -66,10 +70,13 @@ export type Database = {
           is_published?: boolean | null
           js_code?: string | null
           project_name: string
+          show_in_community?: boolean | null
           updated_at?: string
           user_id: string
+          view_count?: number | null
         }
         Update: {
+          collaboration_token?: string | null
           created_at?: string
           css_code?: string | null
           custom_url?: string | null
@@ -78,8 +85,10 @@ export type Database = {
           is_published?: boolean | null
           js_code?: string | null
           project_name?: string
+          show_in_community?: boolean | null
           updated_at?: string
           user_id?: string
+          view_count?: number | null
         }
         Relationships: []
       }
@@ -88,7 +97,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      increment_view_count: {
+        Args: { project_uuid: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

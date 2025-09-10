@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Code, Play, Save, Share, Home, Settings, Download } from "lucide-react";
+import { Code, Play, Save, Share, Home, Settings, Download, Users, Globe } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -17,6 +17,7 @@ const Editor = () => {
   const { user } = useAuth();
   const [project, setProject] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [showCommunityToggle, setShowCommunityToggle] = useState(false);
   
   const [htmlCode, setHtmlCode] = useState(`<!DOCTYPE html>
 <html lang="ar" dir="rtl">
@@ -106,6 +107,7 @@ document.addEventListener('click', function() {
       setHtmlCode(data.html_code);
       setCssCode(data.css_code);
       setJsCode(data.js_code);
+      setShowCommunityToggle(data.show_in_community || false);
     }
     setLoading(false);
   };
@@ -167,6 +169,58 @@ document.addEventListener('click', function() {
       toast({
         title: "تم النشر بنجاح",
         description: "تم نسخ رابط المشروع إلى الحافظة",
+      });
+    }
+  };
+
+  const handleCommunityToggle = async () => {
+    if (!project) return;
+
+    const newValue = !showCommunityToggle;
+    const { error } = await supabase
+      .from('projects')
+      .update({ show_in_community: newValue })
+      .eq('id', project.id);
+
+    if (error) {
+      toast({
+        title: "خطأ في التحديث",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      setShowCommunityToggle(newValue);
+      toast({
+        title: newValue ? "تم إضافة المشروع للمجتمع" : "تم إزالة المشروع من المجتمع",
+        description: newValue ? "يمكن للآخرين الآن رؤية مشروعك" : "لن يظهر مشروعك في المجتمع",
+      });
+    }
+  };
+
+  const generateCollaborationLink = async () => {
+    if (!project) return;
+
+    // Generate a unique collaboration token
+    const token = `collab_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    const { error } = await supabase
+      .from('projects')
+      .update({ collaboration_token: token })
+      .eq('id', project.id);
+
+    if (error) {
+      toast({
+        title: "خطأ في إنشاء رابط التعاون",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      const collabUrl = `${window.location.origin}/editor/${project.id}?token=${token}`;
+      navigator.clipboard.writeText(collabUrl);
+      setProject({ ...project, collaboration_token: token });
+      toast({
+        title: "تم إنشاء رابط التعاون",
+        description: "تم نسخ الرابط إلى الحافظة - شاركه مع من تريد التعاون معه",
       });
     }
   };
@@ -241,6 +295,18 @@ document.addEventListener('click', function() {
               <Button variant="default" size="sm" onClick={handlePublish}>
                 <Share className="h-4 w-4 mr-2" />
                 {project?.is_published ? "تحديث النشر" : "نشر"}
+              </Button>
+              <Button 
+                variant={showCommunityToggle ? "default" : "outline"} 
+                size="sm" 
+                onClick={handleCommunityToggle}
+              >
+                <Users className="h-4 w-4 mr-2" />
+                {showCommunityToggle ? "في المجتمع" : "إضافة للمجتمع"}
+              </Button>
+              <Button variant="outline" size="sm" onClick={generateCollaborationLink}>
+                <Globe className="h-4 w-4 mr-2" />
+                رابط التعاون
               </Button>
               <Button variant="ghost" size="icon">
                 <Settings className="h-5 w-5" />
