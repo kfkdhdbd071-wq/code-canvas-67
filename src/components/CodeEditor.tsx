@@ -10,9 +10,10 @@ interface CodeEditorProps {
   onChange: (value: string) => void;
   language: "html" | "css" | "javascript";
   placeholder?: string;
+  hideLineNumbers?: boolean;
 }
 
-const CodeEditor = ({ value, onChange, language, placeholder }: CodeEditorProps) => {
+const CodeEditor = ({ value, onChange, language, placeholder, hideLineNumbers = false }: CodeEditorProps) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const preRef = useRef<HTMLPreElement>(null);
   const lineNumbersRef = useRef<HTMLDivElement>(null);
@@ -66,23 +67,25 @@ const CodeEditor = ({ value, onChange, language, placeholder }: CodeEditorProps)
   return (
     <div className="relative h-full flex">
       {/* Line Numbers */}
-      <div
-        ref={lineNumbersRef}
-        className="flex-shrink-0 w-12 bg-gray-800 border-r border-gray-600 overflow-hidden"
-        style={{ lineHeight: "1.5" }}
-      >
-        <div className="p-4 pr-2 font-mono text-sm text-gray-400">
-          {getLineNumbers().map((lineNum) => (
-            <div
-              key={lineNum}
-              className={`text-right ${lineNum === currentLine ? 'text-white bg-gray-700' : ''}`}
-              style={{ height: "1.5em" }}
-            >
-              {lineNum}
-            </div>
-          ))}
+      {!hideLineNumbers && (
+        <div
+          ref={lineNumbersRef}
+          className="flex-shrink-0 w-12 bg-gray-800 border-r border-gray-600 overflow-hidden"
+          style={{ lineHeight: "1.5" }}
+        >
+          <div className="p-4 pr-2 font-mono text-sm text-gray-400">
+            {getLineNumbers().map((lineNum) => (
+              <div
+                key={lineNum}
+                className={`text-right ${lineNum === currentLine ? 'text-white bg-gray-700' : ''}`}
+                style={{ height: "1.5em" }}
+              >
+                {lineNum}
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Code Editor */}
       <div className="relative flex-1">
@@ -118,9 +121,11 @@ const CodeEditor = ({ value, onChange, language, placeholder }: CodeEditorProps)
       </div>
 
       {/* Status Bar */}
-      <div className="absolute bottom-0 right-0 bg-gray-800 text-gray-300 px-2 py-1 text-xs font-mono border-l border-t border-gray-600">
-        السطر {currentLine}
-      </div>
+      {!hideLineNumbers && (
+        <div className="absolute bottom-0 right-0 bg-gray-800 text-gray-300 px-2 py-1 text-xs font-mono border-l border-t border-gray-600">
+          السطر {currentLine}
+        </div>
+      )}
     </div>
   );
 };

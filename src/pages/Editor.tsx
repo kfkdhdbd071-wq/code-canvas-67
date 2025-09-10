@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Code, Play, Save, Share, Home, Settings, Download, Users, Globe } from "lucide-react";
+import { Code, Play, Save, Share, Home, Settings, Download, Users, Globe, Eye, EyeOff, RotateCcw } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -18,6 +18,9 @@ const Editor = () => {
   const [project, setProject] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [showCommunityToggle, setShowCommunityToggle] = useState(false);
+  const [minimizedUI, setMinimizedUI] = useState(false);
+  const [autoSave, setAutoSave] = useState(false);
+  const [lastSaveTime, setLastSaveTime] = useState<Date | null>(null);
   
   const [htmlCode, setHtmlCode] = useState(`<!DOCTYPE html>
 <html lang="ar" dir="rtl">
@@ -87,6 +90,17 @@ document.addEventListener('click', function() {
     return () => clearTimeout(timer);
   }, [htmlCode, cssCode, jsCode]);
 
+  // Auto-save effect
+  useEffect(() => {
+    if (!autoSave || !project) return;
+
+    const autoSaveTimer = setTimeout(() => {
+      handleAutoSave();
+    }, 1000); // Auto-save after 1 second of inactivity
+
+    return () => clearTimeout(autoSaveTimer);
+  }, [htmlCode, cssCode, jsCode, autoSave, project]);
+
   const fetchProject = async () => {
     const { data, error } = await supabase
       .from('projects')
@@ -132,10 +146,29 @@ document.addEventListener('click', function() {
         variant: "destructive",
       });
     } else {
+      setLastSaveTime(new Date());
       toast({
         title: "تم الحفظ بنجاح",
         description: "تم حفظ مشروعك في السحابة",
       });
+    }
+  };
+
+  const handleAutoSave = async () => {
+    if (!project) return;
+
+    const { error } = await supabase
+      .from('projects')
+      .update({
+        html_code: htmlCode,
+        css_code: cssCode,
+        js_code: jsCode,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', project.id);
+
+    if (!error) {
+      setLastSaveTime(new Date());
     }
   };
 
@@ -262,61 +295,95 @@ document.addEventListener('click', function() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b bg-card shadow-sm">
-        <div className="container mx-auto px-4 py-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => navigate('/dashboard')}
-              >
-                <Home className="h-5 w-5" />
-              </Button>
-              <div className="flex items-center gap-2">
-                <Code className="h-6 w-6 text-primary" />
-                <span className="text-xl font-bold">كودر</span>
-              </div>
-              <span className="text-sm text-muted-foreground">
-                {project?.project_name || "تحميل..."}
-              </span>
+      {/* Minimized Header */}
+      {minimizedUI ? (
+        <div className="fixed top-2 right-2 z-50 flex gap-2">
+          <Button
+            variant="secondary"
+            size="icon"
+            onClick={() => setMinimizedUI(false)}
+            className="h-8 w-8"
+          >
+            <Eye className="h-4 w-4" />
+          </Button>
+          {autoSave && lastSaveTime && (
+            <div className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">
+              حُفظ {lastSaveTime.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}
             </div>
+          )}
+        </div>
+      ) : (
+        /* Full Header */
+        <header className="border-b bg-card shadow-sm">
+          <div className="container mx-auto px-4 py-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => navigate('/dashboard')}
+                >
+                  <Home className="h-5 w-5" />
+                </Button>
+                <div className="flex items-center gap-2">
+                  <Code className="h-6 w-6 text-primary" />
+                  <span className="text-xl font-bold">كودر</span>
+                </div>
+                <span className="text-sm text-muted-foreground">
+                  {project?.project_name || "تحميل..."}
+                </span>
+              </div>
 
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={handleSave}>
-                <Save className="h-4 w-4 mr-2" />
-                حفظ
-              </Button>
-              <Button variant="outline" size="sm" onClick={handleDownload}>
-                <Download className="h-4 w-4 mr-2" />
-                تحميل
-              </Button>
-              <Button variant="default" size="sm" onClick={handlePublish}>
-                <Share className="h-4 w-4 mr-2" />
-                {project?.is_published ? "تحديث النشر" : "نشر"}
-              </Button>
-              <Button 
-                variant={showCommunityToggle ? "default" : "outline"} 
-                size="sm" 
-                onClick={handleCommunityToggle}
-              >
-                <Users className="h-4 w-4 mr-2" />
-                {showCommunityToggle ? "في المجتمع" : "إضافة للمجتمع"}
-              </Button>
-              <Button variant="outline" size="sm" onClick={generateCollaborationLink}>
-                <Globe className="h-4 w-4 mr-2" />
-                رابط التعاون
-              </Button>
-              <Button variant="ghost" size="icon">
-                <Settings className="h-5 w-5" />
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={handleSave}>
+                  <Save className="h-4 w-4 mr-2" />
+                  حفظ
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleDownload}>
+                  <Download className="h-4 w-4 mr-2" />
+                  تحميل
+                </Button>
+                <Button variant="default" size="sm" onClick={handlePublish}>
+                  <Share className="h-4 w-4 mr-2" />
+                  {project?.is_published ? "تحديث النشر" : "نشر"}
+                </Button>
+                <Button 
+                  variant={showCommunityToggle ? "default" : "outline"} 
+                  size="sm" 
+                  onClick={handleCommunityToggle}
+                >
+                  <Users className="h-4 w-4 mr-2" />
+                  {showCommunityToggle ? "في المجتمع" : "إضافة للمجتمع"}
+                </Button>
+                <Button variant="outline" size="sm" onClick={generateCollaborationLink}>
+                  <Globe className="h-4 w-4 mr-2" />
+                  رابط التعاون
+                </Button>
+                <Button 
+                  variant={autoSave ? "default" : "outline"} 
+                  size="sm" 
+                  onClick={() => setAutoSave(!autoSave)}
+                >
+                  <RotateCcw className="h-4 w-4 mr-2" />
+                  {autoSave ? "إيقاف الحفظ التلقائي" : "تفعيل الحفظ التلقائي"}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setMinimizedUI(true)}
+                >
+                  <EyeOff className="h-5 w-5" />
+                </Button>
+                <Button variant="ghost" size="icon">
+                  <Settings className="h-5 w-5" />
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
-      </header>
+        </header>
+      )}
 
-      <div className="flex h-[calc(100vh-73px)]">
+      <div className={`flex ${minimizedUI ? 'h-screen' : 'h-[calc(100vh-73px)]'}`}>
         {/* Code Editor */}
         <div className="w-1/2 border-r">
           <Tabs defaultValue="html" className="h-full flex flex-col">
@@ -332,6 +399,7 @@ document.addEventListener('click', function() {
                 onChange={setHtmlCode}
                 language="html"
                 placeholder="أكتب كود HTML هنا..."
+                hideLineNumbers={minimizedUI}
               />
             </TabsContent>
             
@@ -341,6 +409,7 @@ document.addEventListener('click', function() {
                 onChange={setCssCode}
                 language="css"
                 placeholder="أكتب كود CSS هنا..."
+                hideLineNumbers={minimizedUI}
               />
             </TabsContent>
             
@@ -350,6 +419,7 @@ document.addEventListener('click', function() {
                 onChange={setJsCode}
                 language="javascript"
                 placeholder="أكتب كود JavaScript هنا..."
+                hideLineNumbers={minimizedUI}
               />
             </TabsContent>
           </Tabs>
@@ -357,19 +427,26 @@ document.addEventListener('click', function() {
 
         {/* Preview */}
         <div className="w-1/2 flex flex-col">
-          <div className="bg-card border-b px-4 py-3 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Play className="h-5 w-5 text-primary" />
-              <span className="font-medium">المعاينة المباشرة</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="flex gap-1">
-                <div className="w-3 h-3 bg-destructive rounded-full"></div>
-                <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
-                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+          {!minimizedUI && (
+            <div className="bg-card border-b px-4 py-3 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Play className="h-5 w-5 text-primary" />
+                <span className="font-medium">المعاينة المباشرة</span>
+                {autoSave && lastSaveTime && (
+                  <span className="text-xs text-green-600">
+                    آخر حفظ: {lastSaveTime.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="flex gap-1">
+                  <div className="w-3 h-3 bg-destructive rounded-full"></div>
+                  <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                </div>
               </div>
             </div>
-          </div>
+          )}
           
           <iframe
             srcDoc={previewContent}
