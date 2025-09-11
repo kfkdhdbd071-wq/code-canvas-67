@@ -44,16 +44,83 @@ export type Database = {
         }
         Relationships: []
       }
+      project_comments: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          project_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          project_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          project_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_comments_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_likes: {
+        Row: {
+          created_at: string
+          id: string
+          project_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          project_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          project_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_likes_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projects: {
         Row: {
           collaboration_token: string | null
+          comments_count: number | null
           created_at: string
           css_code: string | null
           custom_url: string | null
+          forked_from: string | null
           html_code: string | null
           id: string
           is_published: boolean | null
           js_code: string | null
+          likes_count: number | null
           project_name: string
           show_in_community: boolean | null
           updated_at: string
@@ -62,13 +129,16 @@ export type Database = {
         }
         Insert: {
           collaboration_token?: string | null
+          comments_count?: number | null
           created_at?: string
           css_code?: string | null
           custom_url?: string | null
+          forked_from?: string | null
           html_code?: string | null
           id?: string
           is_published?: boolean | null
           js_code?: string | null
+          likes_count?: number | null
           project_name: string
           show_in_community?: boolean | null
           updated_at?: string
@@ -77,18 +147,77 @@ export type Database = {
         }
         Update: {
           collaboration_token?: string | null
+          comments_count?: number | null
           created_at?: string
           css_code?: string | null
           custom_url?: string | null
+          forked_from?: string | null
           html_code?: string | null
           id?: string
           is_published?: boolean | null
           js_code?: string | null
+          likes_count?: number | null
           project_name?: string
           show_in_community?: boolean | null
           updated_at?: string
           user_id?: string
           view_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projects_forked_from_fkey"
+            columns: ["forked_from"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      templates: {
+        Row: {
+          category: string
+          created_at: string
+          created_by: string | null
+          css_code: string | null
+          description: string | null
+          html_code: string | null
+          id: string
+          is_featured: boolean | null
+          js_code: string | null
+          name: string
+          thumbnail_url: string | null
+          updated_at: string
+          usage_count: number | null
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          created_by?: string | null
+          css_code?: string | null
+          description?: string | null
+          html_code?: string | null
+          id?: string
+          is_featured?: boolean | null
+          js_code?: string | null
+          name: string
+          thumbnail_url?: string | null
+          updated_at?: string
+          usage_count?: number | null
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          css_code?: string | null
+          description?: string | null
+          html_code?: string | null
+          id?: string
+          is_featured?: boolean | null
+          js_code?: string | null
+          name?: string
+          thumbnail_url?: string | null
+          updated_at?: string
+          usage_count?: number | null
         }
         Relationships: []
       }

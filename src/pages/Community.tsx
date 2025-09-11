@@ -1,11 +1,14 @@
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Eye, Play, Calendar, User, Home } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { Input } from "@/components/ui/input";
+import { Code, Eye, Heart, MessageCircle, GitFork, Search, Clock, TrendingUp, Users, Home } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import ProjectLikeButton from "@/components/ProjectLikeButton";
+import ProjectForkButton from "@/components/ProjectForkButton";
 
 interface CommunityProject {
   id: string;
@@ -13,19 +16,19 @@ interface CommunityProject {
   html_code: string;
   css_code: string;
   js_code: string;
-  view_count: number;
   created_at: string;
-  profiles: {
-    display_name: string;
-    avatar_url: string;
-  };
+  view_count: number;
+  likes_count: number;
+  comments_count: number;
+  user_id: string;
 }
 
 const Community = () => {
+  const navigate = useNavigate();
+  const { toast } = useToast();
   const [projects, setProjects] = useState<CommunityProject[]>([]);
   const [loading, setLoading] = useState(true);
-  const { toast } = useToast();
-  const navigate = useNavigate();
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     fetchCommunityProjects();
@@ -41,12 +44,14 @@ const Community = () => {
         css_code,
         js_code,
         view_count,
+        likes_count,
+        comments_count,
         created_at,
         user_id
       `)
       .eq('show_in_community', true)
       .order('created_at', { ascending: false })
-      .limit(20);
+      .limit(50);
 
     if (error) {
       toast({
@@ -55,32 +60,17 @@ const Community = () => {
         variant: "destructive",
       });
     } else {
-      // Fetch profiles for each project
-      const projectsWithProfiles = await Promise.all(
-        (data || []).map(async (project) => {
-          const { data: profileData } = await supabase
-            .from('profiles')
-            .select('display_name, avatar_url')
-            .eq('user_id', project.user_id)
-            .single();
-
-          return {
-            ...project,
-            profiles: profileData || { display_name: "مستخدم", avatar_url: "" }
-          };
-        })
-      );
-      setProjects(projectsWithProfiles);
+      setProjects(data || []);
     }
     setLoading(false);
   };
 
-  const handleViewProject = async (project: CommunityProject) => {
-    // Increment view count
-    await supabase.rpc('increment_view_count', { project_uuid: project.id });
+  const viewProject = async (projectId: string) => {
+    // زيادة عدد المشاهدات
+    await supabase.rpc('increment_view_count', { project_uuid: projectId });
     
-    // Navigate to public project page
-    navigate(`/p/${project.id}`);
+    // الانتقال لصفحة المشروع
+    navigate(`/p/${projectId}`);
   };
 
   const generatePreview = (project: CommunityProject) => {
@@ -96,6 +86,10 @@ const Community = () => {
     );
   };
 
+  const filteredProjects = projects.filter(project =>
+    project.project_name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -108,76 +102,155 @@ const Community = () => {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b bg-card shadow-sm">
-        <div className="container mx-auto px-4 py-4">
+        <div className="container mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => navigate('/dashboard')}
-              >
-                <Home className="h-5 w-5" />
+              <Button variant="ghost" onClick={() => navigate('/')}>
+                <Home className="h-4 w-4 mr-2" />
+                الرئيسية
               </Button>
-              <h1 className="text-2xl font-bold">مجتمع كودر</h1>
+              <div className="flex items-center gap-2">
+                <Code className="h-6 w-6 text-primary" />
+                <span className="text-xl font-bold">كودر - المجتمع</span>
+              </div>
             </div>
+            <Button variant="outline" onClick={() => navigate('/dashboard')}>
+              لوحة التحكم
+            </Button>
           </div>
         </div>
       </header>
 
-      {/* Projects Grid */}
       <div className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {projects.map((project) => (
-            <Card key={project.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg">{project.project_name}</CardTitle>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <User className="h-4 w-4" />
-                  <span>{project.profiles?.display_name || "مستخدم"}</span>
-                  <Calendar className="h-4 w-4 mr-2" />
-                  <span>{new Date(project.created_at).toLocaleDateString('ar-EG')}</span>
-                </div>
-              </CardHeader>
-              
-              <CardContent className="p-0">
-                {/* Preview */}
-                <div className="h-48 border-b overflow-hidden">
-                  <iframe
-                    srcDoc={generatePreview(project)}
-                    className="w-full h-full border-0 pointer-events-none"
-                    title={`معاينة ${project.project_name}`}
-                    sandbox="allow-scripts"
-                  />
-                </div>
-                
-                {/* Actions */}
-                <div className="p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <Badge variant="secondary" className="flex items-center gap-1">
-                      <Eye className="h-3 w-3" />
-                      {project.view_count}
-                    </Badge>
-                  </div>
-                  
-                  <Button 
-                    size="sm" 
-                    onClick={() => handleViewProject(project)}
-                    className="flex items-center gap-2"
-                  >
-                    <Play className="h-4 w-4" />
-                    مشاهدة
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+        {/* شريط البحث */}
+        <div className="mb-8">
+          <div className="relative max-w-md mx-auto">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+            <Input
+              placeholder="ابحث في مشاريع المجتمع..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
         </div>
 
-        {projects.length === 0 && (
+        {/* إحصائيات */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+          <Card>
+            <CardContent className="flex items-center gap-4 p-6">
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <Code className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{projects.length}</p>
+                <p className="text-sm text-muted-foreground">مشروع في المجتمع</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="flex items-center gap-4 p-6">
+              <div className="p-2 bg-green-100 rounded-lg">
+                <TrendingUp className="h-6 w-6 text-green-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">
+                  {projects.reduce((sum, p) => sum + p.view_count, 0)}
+                </p>
+                <p className="text-sm text-muted-foreground">إجمالي المشاهدات</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="flex items-center gap-4 p-6">
+              <div className="p-2 bg-red-100 rounded-lg">
+                <Heart className="h-6 w-6 text-red-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">
+                  {projects.reduce((sum, p) => sum + p.likes_count, 0)}
+                </p>
+                <p className="text-sm text-muted-foreground">إجمالي الإعجابات</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* المشاريع */}
+        {filteredProjects.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-muted-foreground text-lg">
-              لا توجد مشاريع في المجتمع حاليًا
+            <Users className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-medium mb-2">لا توجد مشاريع</h3>
+            <p className="text-muted-foreground">
+              {searchTerm ? "لا توجد مشاريع تطابق البحث" : "لا توجد مشاريع في المجتمع حاليًا"}
             </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredProjects.map((project) => (
+              <Card key={project.id} className="group hover:shadow-lg transition-shadow overflow-hidden">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg">{project.project_name}</CardTitle>
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <span>بواسطة مطور</span>
+                  </div>
+                </CardHeader>
+                
+                <CardContent className="p-0">
+                  {/* معاينة */}
+                  <div className="h-48 border-b overflow-hidden bg-gray-50">
+                    <iframe
+                      srcDoc={generatePreview(project)}
+                      className="w-full h-full border-0 pointer-events-none scale-75 origin-top-left"
+                      title={`معاينة ${project.project_name}`}
+                      sandbox="allow-scripts"
+                      style={{ width: '133.33%', height: '133.33%' }}
+                    />
+                  </div>
+                  
+                  {/* الإجراءات */}
+                  <div className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                        <div className="flex items-center gap-1">
+                          <Eye className="h-4 w-4" />
+                          {project.view_count}
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Heart className="h-4 w-4" />
+                          {project.likes_count}
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <MessageCircle className="h-4 w-4" />
+                          {project.comments_count}
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Clock className="h-4 w-4" />
+                          {new Date(project.created_at).toLocaleDateString('ar-EG')}
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <ProjectLikeButton 
+                          projectId={project.id} 
+                          initialLikesCount={project.likes_count}
+                        />
+                        <ProjectForkButton
+                          projectId={project.id}
+                          projectName={project.project_name}
+                          htmlCode={project.html_code}
+                          cssCode={project.css_code}
+                          jsCode={project.js_code}
+                        />
+                        <Button size="sm" onClick={() => viewProject(project.id)}>
+                          <Eye className="h-4 w-4 mr-2" />
+                          عرض
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         )}
       </div>

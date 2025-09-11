@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Plus, Code, LogOut, Edit, Trash2, ExternalLink, Calendar, Users } from "lucide-react";
+import { Plus, Code, LogOut, Edit, Trash2, ExternalLink, Calendar, Users, BookOpen } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -167,6 +167,14 @@ const Dashboard = () => {
                 <Code className="h-6 w-6 text-primary" />
                 <span className="text-xl font-bold">كودر</span>
               </div>
+              <Button 
+                variant="ghost" 
+                onClick={() => navigate('/templates')}
+                className="flex items-center gap-2"
+              >
+                <BookOpen className="h-4 w-4" />
+                القوالب
+              </Button>
               <Button 
                 variant="ghost" 
                 onClick={() => navigate('/community')}
