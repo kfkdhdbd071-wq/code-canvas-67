@@ -106,18 +106,22 @@ document.addEventListener('click', function() {
     const urlParams = new URLSearchParams(window.location.search);
     const collabToken = urlParams.get('token');
     
-    let query = supabase
-      .from('projects')
-      .select('*')
-      .eq('id', projectId);
-
-    // If there's a collaboration token, use it instead of user_id filter
+    // Create query with proper headers if collaboration token exists
+    let query;
     if (collabToken) {
-      // Set collaboration token in headers for RLS policy
-      query = query.eq('collaboration_token', collabToken);
+      // Create a new request with collaboration token header
+      query = supabase
+        .from('projects')
+        .select('*')
+        .eq('id', projectId)
+        .eq('collaboration_token', collabToken);
     } else if (user) {
       // Normal user access - only owner can access
-      query = query.eq('user_id', user.id);
+      query = supabase
+        .from('projects')
+        .select('*')
+        .eq('id', projectId)
+        .eq('user_id', user.id);
     } else {
       // No user and no token - redirect to auth
       navigate('/auth');
