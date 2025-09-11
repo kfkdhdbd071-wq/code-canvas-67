@@ -66,10 +66,10 @@ document.addEventListener('click', function() {
   const [previewContent, setPreviewContent] = useState("");
 
   useEffect(() => {
-    if (projectId && user) {
+    if (projectId) {
       fetchProject();
     }
-  }, [projectId, user]);
+  }, [projectId]);
 
   useEffect(() => {
     const generatePreview = () => {
@@ -102,12 +102,29 @@ document.addEventListener('click', function() {
   }, [htmlCode, cssCode, jsCode, autoSave, project]);
 
   const fetchProject = async () => {
-    const { data, error } = await supabase
+    // Check if there's a collaboration token in the URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const collabToken = urlParams.get('token');
+    
+    let query = supabase
       .from('projects')
       .select('*')
-      .eq('id', projectId)
-      .eq('user_id', user?.id)
-      .single();
+      .eq('id', projectId);
+
+    // If there's a collaboration token, use it instead of user_id filter
+    if (collabToken) {
+      // Set collaboration token in headers for RLS policy
+      query = query.eq('collaboration_token', collabToken);
+    } else if (user) {
+      // Normal user access - only owner can access
+      query = query.eq('user_id', user.id);
+    } else {
+      // No user and no token - redirect to auth
+      navigate('/auth');
+      return;
+    }
+
+    const { data, error } = await query.single();
 
     if (error) {
       toast({
