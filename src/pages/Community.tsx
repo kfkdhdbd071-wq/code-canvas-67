@@ -210,26 +210,28 @@ const Community = () => {
                   
                   {/* الإجراءات */}
                   <div className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                        <div className="flex items-center gap-1">
-                          <Eye className="h-4 w-4" />
-                          {project.view_count}
+                    <div className="flex flex-col gap-3">
+                      <div className="flex items-center justify-between text-sm text-muted-foreground">
+                        <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-1">
+                            <Eye className="h-4 w-4" />
+                            {project.view_count}
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Heart className="h-4 w-4" />
+                            {project.likes_count}
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <MessageCircle className="h-4 w-4" />
+                            {project.comments_count}
+                          </div>
                         </div>
-                        <div className="flex items-center gap-1">
-                          <Heart className="h-4 w-4" />
-                          {project.likes_count}
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <MessageCircle className="h-4 w-4" />
-                          {project.comments_count}
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Clock className="h-4 w-4" />
+                        <div className="flex items-center gap-1 text-xs">
+                          <Clock className="h-3 w-3" />
                           {new Date(project.created_at).toLocaleDateString('ar-EG')}
                         </div>
                       </div>
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 justify-end">
                         <ProjectLikeButton 
                           projectId={project.id} 
                           initialLikesCount={project.likes_count}
