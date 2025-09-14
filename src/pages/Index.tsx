@@ -172,9 +172,6 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Articles Section */}
-      <ArticleSection />
-
       {/* CTA Section */}
       <section className="container mx-auto px-6 py-20 text-center">
         <div className="max-w-3xl mx-auto">
@@ -195,6 +192,9 @@ const Index = () => {
           </Button>
         </div>
       </section>
+
+      {/* Articles Section */}
+      <ArticleSection />
 
       {/* Footer */}
       <footer className="container mx-auto px-6 py-12 border-t border-white/20">
