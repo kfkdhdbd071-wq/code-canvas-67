@@ -4,7 +4,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Code, Globe, Palette, Zap, Users, Shield } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import ArticleSection from "@/components/ArticleSection";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -192,9 +191,6 @@ const Index = () => {
           </Button>
         </div>
       </section>
-
-      {/* Articles Section */}
-      <ArticleSection />
 
       {/* Footer */}
       <footer className="container mx-auto px-6 py-12 border-t border-white/20">

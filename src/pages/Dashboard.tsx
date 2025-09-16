@@ -6,12 +6,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Code, LogOut, Edit, Trash2, ExternalLink, Calendar, Users, BookOpen, FileText } from "lucide-react";
+import { Plus, Code, LogOut, Edit, Trash2, ExternalLink, Calendar, Users, BookOpen } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import ArticleManager from "@/components/ArticleManager";
 
 interface Project {
   id: string;
@@ -207,24 +205,11 @@ const Dashboard = () => {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
-        <Tabs defaultValue="projects" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="projects" className="flex items-center gap-2">
-              <Code className="h-4 w-4" />
-              مشاريعي
-            </TabsTrigger>
-            <TabsTrigger value="articles" className="flex items-center gap-2">
-              <FileText className="h-4 w-4" />
-              المقالات
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="projects" className="mt-8">
-            <div className="flex items-center justify-between mb-8">
-              <div>
-                <h1 className="text-3xl font-bold">مشاريعي</h1>
-                <p className="text-muted-foreground">إدارة وإنشاء مشاريع الويب الخاصة بك</p>
-              </div>
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-3xl font-bold">مشاريعي</h1>
+            <p className="text-muted-foreground">إدارة وإنشاء مشاريع الويب الخاصة بك</p>
+          </div>
 
           <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
             <DialogTrigger asChild>
@@ -332,22 +317,16 @@ const Dashboard = () => {
           ))}
         </div>
 
-            {projects.length === 0 && (
-              <div className="text-center py-12">
-                <Code className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-xl font-semibold mb-2">لا توجد مشاريع بعد</h3>
-                <p className="text-muted-foreground mb-4">ابدأ بإنشاء مشروعك الأول</p>
-                <Button onClick={() => setIsCreateDialogOpen(true)}>
-                  إنشاء مشروع جديد
-                </Button>
-              </div>
-            )}
-          </TabsContent>
-
-          <TabsContent value="articles" className="mt-8">
-            <ArticleManager />
-          </TabsContent>
-        </Tabs>
+        {projects.length === 0 && (
+          <div className="text-center py-12">
+            <Code className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-xl font-semibold mb-2">لا توجد مشاريع بعد</h3>
+            <p className="text-muted-foreground mb-4">ابدأ بإنشاء مشروعك الأول</p>
+            <Button onClick={() => setIsCreateDialogOpen(true)}>
+              إنشاء مشروع جديد
+            </Button>
+          </div>
+        )}
       </main>
     </div>
   );

@@ -62,13 +62,7 @@ const PublicProject = () => {
     );
   }
 
-  // Remove "EDIT WITH LOVABLE" text from published projects
-  const cleanHTML = project.html_code
-    .replace(/EDIT WITH LOVABLE/gi, '')
-    .replace(/تحرير مع لوفابل/gi, '')
-    .replace(/Edit with Lovable/gi, '');
-
-  const fullHTML = cleanHTML
+  const fullHTML = project.html_code
     .replace(
       '</head>',
       `<style>${project.css_code}</style>
