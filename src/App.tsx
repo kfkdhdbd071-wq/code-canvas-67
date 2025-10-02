@@ -13,6 +13,7 @@ import Templates from "./pages/Templates";
 import PublicProject from "./pages/PublicProject";
 import Community from "./pages/Community";
 import NotFound from "./pages/NotFound";
+import AIAgentsBuilder from "./pages/AIAgentsBuilder";
 
 const queryClient = new QueryClient();
 
@@ -38,6 +39,11 @@ const App = () => (
             } />
             <Route path="/templates" element={<Templates />} />
             <Route path="/community" element={<Community />} />
+            <Route path="/ai-agents/:projectId" element={
+              <ProtectedRoute>
+                <AIAgentsBuilder />
+              </ProtectedRoute>
+            } />
             <Route path="/p/:identifier" element={<PublicProject />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

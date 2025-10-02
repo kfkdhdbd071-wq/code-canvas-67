@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      articles: {
+        Row: {
+          author_id: string
+          content: string
+          created_at: string
+          excerpt: string | null
+          featured: boolean | null
+          id: string
+          published: boolean | null
+          slug: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          author_id: string
+          content: string
+          created_at?: string
+          excerpt?: string | null
+          featured?: boolean | null
+          id?: string
+          published?: boolean | null
+          slug: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string
+          content?: string
+          created_at?: string
+          excerpt?: string | null
+          featured?: boolean | null
+          id?: string
+          published?: boolean | null
+          slug?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -110,6 +149,9 @@ export type Database = {
       }
       projects: {
         Row: {
+          ai_agents_idea: string | null
+          ai_agents_progress: number | null
+          ai_agents_status: string | null
           collaboration_token: string | null
           comments_count: number | null
           created_at: string
@@ -128,6 +170,9 @@ export type Database = {
           view_count: number | null
         }
         Insert: {
+          ai_agents_idea?: string | null
+          ai_agents_progress?: number | null
+          ai_agents_status?: string | null
           collaboration_token?: string | null
           comments_count?: number | null
           created_at?: string
@@ -146,6 +191,9 @@ export type Database = {
           view_count?: number | null
         }
         Update: {
+          ai_agents_idea?: string | null
+          ai_agents_progress?: number | null
+          ai_agents_status?: string | null
           collaboration_token?: string | null
           comments_count?: number | null
           created_at?: string

@@ -1,1 +1,4 @@
 project_id = "tgbaxbcahikimzilubde"
+
+[functions.ai-agents-builder]
+verify_jwt = false

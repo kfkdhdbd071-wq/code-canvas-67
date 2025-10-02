@@ -35,6 +35,8 @@ const Dashboard = () => {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [newProjectName, setNewProjectName] = useState("");
   const [newProjectUrl, setNewProjectUrl] = useState("");
+  const [buildMode, setBuildMode] = useState<"manual" | "ai">("manual");
+  const [projectIdea, setProjectIdea] = useState("");
 
   useEffect(() => {
     if (user) {
@@ -84,6 +86,15 @@ const Dashboard = () => {
       return;
     }
 
+    if (buildMode === "ai" && !projectIdea.trim()) {
+      toast({
+        title: "فكرة المشروع مطلوبة",
+        description: "يرجى إدخال فكرة المشروع للوكلاء",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const customUrl = newProjectUrl.trim() || null;
     
     const { data, error } = await supabase
@@ -92,6 +103,7 @@ const Dashboard = () => {
         user_id: user?.id,
         project_name: newProjectName.trim(),
         custom_url: customUrl,
+        ai_agents_idea: buildMode === "ai" ? projectIdea : null,
       })
       .select()
       .single();
@@ -115,10 +127,20 @@ const Dashboard = () => {
       setIsCreateDialogOpen(false);
       setNewProjectName("");
       setNewProjectUrl("");
+      setProjectIdea("");
       toast({
         title: "تم إنشاء المشروع",
-        description: "تم إنشاء مشروعك بنجاح",
+        description: buildMode === "ai" ? "جاري تشغيل وكلاء الذكاء الاصطناعي..." : "تم إنشاء مشروعك بنجاح",
       });
+
+      if (buildMode === "ai") {
+        supabase.functions.invoke('ai-agents-builder', {
+          body: { projectId: data.id, idea: projectIdea, userId: user?.id }
+        });
+        navigate(`/ai-agents/${data.id}`);
+      } else {
+        navigate(`/editor/${data.id}`);
+      }
     }
   };
 
@@ -218,7 +240,7 @@ const Dashboard = () => {
                 مشروع جديد
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="sm:max-w-[500px]">
               <DialogHeader>
                 <DialogTitle>إنشاء مشروع جديد</DialogTitle>
               </DialogHeader>
@@ -241,8 +263,63 @@ const Dashboard = () => {
                     onChange={(e) => setNewProjectUrl(e.target.value)}
                   />
                 </div>
+
+                <div className="space-y-3 pt-2 border-t">
+                  <Label>طريقة البناء</Label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      onClick={() => setBuildMode("manual")}
+                      type="button"
+                      className={`p-4 rounded-lg border-2 transition-all ${
+                        buildMode === "manual"
+                          ? "border-primary bg-primary/10"
+                          : "border-border hover:border-primary/50"
+                      }`}
+                    >
+                      <div className="text-2xl mb-2">✍️</div>
+                      <div className="font-medium">أكتب بنفسي</div>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        استخدم المحرر
+                      </div>
+                    </button>
+
+                    <button
+                      onClick={() => setBuildMode("ai")}
+                      type="button"
+                      className={`p-4 rounded-lg border-2 transition-all ${
+                        buildMode === "ai"
+                          ? "border-primary bg-primary/10"
+                          : "border-border hover:border-primary/50"
+                      }`}
+                    >
+                      <div className="text-2xl mb-2">🤖</div>
+                      <div className="font-medium">AI Agents</div>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        بناء تلقائي
+                      </div>
+                    </button>
+                  </div>
+                </div>
+
+                {buildMode === "ai" && (
+                  <div className="space-y-2">
+                    <Label htmlFor="projectIdea">فكرة المشروع</Label>
+                    <textarea
+                      id="projectIdea"
+                      value={projectIdea}
+                      onChange={(e) => setProjectIdea(e.target.value)}
+                      placeholder="مثال: موقع شخصي يعرض معلوماتي ومهاراتي مع قسم للمشاريع"
+                      rows={4}
+                      className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-none"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      صف فكرتك بالتفصيل ليقوم وكلاء الذكاء الاصطناعي ببناء الموقع
+                    </p>
+                  </div>
+                )}
+                
                 <Button onClick={createProject} className="w-full">
-                  إنشاء المشروع
+                  {buildMode === "ai" ? "🚀 بدء البناء التلقائي" : "إنشاء المشروع"}
                 </Button>
               </div>
             </DialogContent>
