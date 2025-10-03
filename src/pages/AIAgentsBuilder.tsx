@@ -33,12 +33,12 @@ const AIAgentsBuilder = () => {
       .on(
         'postgres_changes',
         {
-          event: 'UPDATE',
+          event: '*',
           schema: 'public',
           table: 'projects',
           filter: `id=eq.${projectId}`
         },
-        (payload) => {
+        (payload: any) => {
           setStatus(payload.new.ai_agents_status);
           setProgress(payload.new.ai_agents_progress || 0);
           setProjectData(payload.new);
@@ -59,6 +59,18 @@ const AIAgentsBuilder = () => {
       supabase.removeChannel(channel);
     };
   }, [projectId]);
+
+  // Polling fallback in case realtime is not available
+  useEffect(() => {
+    if (!projectId) return;
+    if (status === 'completed') return;
+
+    const interval = setInterval(() => {
+      fetchProject();
+    }, 4000);
+
+    return () => clearInterval(interval);
+  }, [projectId, status]);
 
   const fetchProject = async () => {
     const { data } = await supabase
@@ -85,7 +97,7 @@ const AIAgentsBuilder = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-accent/5 p-8">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-accent/5 p-8" role="main" aria-live="polite">
       <div className="max-w-4xl mx-auto">
         <div className="mb-8">
           <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
