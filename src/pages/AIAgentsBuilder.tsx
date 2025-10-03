@@ -171,11 +171,8 @@ const AIAgentsBuilder = () => {
             </Button>
             <Button
               onClick={() => {
-                if (projectData?.custom_url) {
-                  window.open(`/${projectData.custom_url}`, '_blank');
-                } else {
-                  window.open(`/project/${projectId}`, '_blank');
-                }
+                const identifier = projectData?.custom_url || projectId;
+                window.open(`/p/${identifier}`, '_blank');
               }}
               variant="outline"
               size="lg"
