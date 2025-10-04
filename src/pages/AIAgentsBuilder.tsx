@@ -16,6 +16,7 @@ const AIAgentsBuilder = () => {
   const [status, setStatus] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
   const [projectData, setProjectData] = useState<any>(null);
+  const [messages, setMessages] = useState<any[]>([]);
 
   const agents = [
     { id: "html_agent", name: "وكيل HTML", description: "كتابة الهيكل الأساسي" },
@@ -42,6 +43,7 @@ const AIAgentsBuilder = () => {
           setStatus(payload.new.ai_agents_status);
           setProgress(payload.new.ai_agents_progress || 0);
           setProjectData(payload.new);
+          setMessages(Array.isArray(payload.new.agent_messages) ? payload.new.agent_messages : []);
 
           if (payload.new.ai_agents_status === 'completed') {
             toast({
@@ -83,6 +85,7 @@ const AIAgentsBuilder = () => {
       setStatus(data.ai_agents_status);
       setProgress(data.ai_agents_progress || 0);
       setProjectData(data);
+      setMessages(Array.isArray(data.agent_messages) ? data.agent_messages : []);
     }
   };
 
@@ -171,6 +174,32 @@ const AIAgentsBuilder = () => {
             );
           })}
         </div>
+
+        {messages.length > 0 && (
+          <Card className="p-6 mt-6 border-2 border-primary/20">
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              💬 محادثات الوكلاء
+            </h3>
+            <div className="space-y-3 max-h-64 overflow-y-auto">
+              {messages.map((msg: any, idx: number) => (
+                <div 
+                  key={idx} 
+                  className="flex gap-3 items-start p-3 rounded-lg bg-accent/5 hover:bg-accent/10 transition-colors"
+                >
+                  <div className="flex-shrink-0 w-2 h-2 rounded-full bg-primary mt-2" />
+                  <div className="flex-grow">
+                    <div className="font-medium text-sm text-primary mb-1">
+                      {msg.agent}
+                    </div>
+                    <div className="text-sm text-foreground/80">
+                      {msg.message}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+        )}
 
         {status === "completed" && (
           <div className="mt-8 flex gap-4">

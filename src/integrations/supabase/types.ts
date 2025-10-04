@@ -149,6 +149,7 @@ export type Database = {
       }
       projects: {
         Row: {
+          agent_messages: Json | null
           ai_agents_idea: string | null
           ai_agents_progress: number | null
           ai_agents_status: string | null
@@ -170,6 +171,7 @@ export type Database = {
           view_count: number | null
         }
         Insert: {
+          agent_messages?: Json | null
           ai_agents_idea?: string | null
           ai_agents_progress?: number | null
           ai_agents_status?: string | null
@@ -191,6 +193,7 @@ export type Database = {
           view_count?: number | null
         }
         Update: {
+          agent_messages?: Json | null
           ai_agents_idea?: string | null
           ai_agents_progress?: number | null
           ai_agents_status?: string | null

@@ -24,6 +24,23 @@ serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
+    // Helper function to add agent messages
+    const addAgentMessage = async (agent: string, message: string) => {
+      const { data: project } = await supabase
+        .from('projects')
+        .select('agent_messages')
+        .eq('id', projectId)
+        .single();
+      
+      const messages = project?.agent_messages || [];
+      messages.push({ agent, message, timestamp: new Date().toISOString() });
+      
+      await supabase
+        .from('projects')
+        .update({ agent_messages: messages })
+        .eq('id', projectId);
+    };
+
     // Update project status
     await supabase
       .from('projects')
@@ -35,6 +52,8 @@ serve(async (req) => {
 
     // Agent 1: HTML Agent
     console.log('Starting HTML Agent...');
+    await addAgentMessage('HTML Agent', 'بدأت العمل على بناء هيكل الصفحة 🚀');
+    
     const htmlResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -60,6 +79,8 @@ serve(async (req) => {
     const htmlData = await htmlResponse.json();
     const htmlCode = htmlData.choices[0].message.content.replace(/```html\n?/g, '').replace(/```\n?/g, '');
 
+    await addAgentMessage('HTML Agent', 'انتهيت من بناء الهيكل الأساسي للصفحة ✅');
+    
     await supabase
       .from('projects')
       .update({ 
@@ -71,6 +92,8 @@ serve(async (req) => {
 
     // Agent 2: CSS Agent
     console.log('Starting CSS Agent...');
+    await addAgentMessage('CSS Agent', 'تمام! هبدأ أنسق التصميم دلوقتي 🎨');
+    
     const cssResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -96,6 +119,8 @@ serve(async (req) => {
     const cssData = await cssResponse.json();
     const cssCode = cssData.choices[0].message.content.replace(/```css\n?/g, '').replace(/```\n?/g, '');
 
+    await addAgentMessage('CSS Agent', 'خلصت التنسيق والصفحة بقت جميلة 💅');
+    
     await supabase
       .from('projects')
       .update({ 
@@ -107,6 +132,8 @@ serve(async (req) => {
 
     // Agent 3: JavaScript Agent
     console.log('Starting JavaScript Agent...');
+    await addAgentMessage('JS Agent', 'حلو! دوري دلوقتي أضيف التفاعلية ⚡');
+    
     const jsResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -132,6 +159,8 @@ serve(async (req) => {
     const jsData = await jsResponse.json();
     const jsCode = jsData.choices[0].message.content.replace(/```javascript\n?/g, '').replace(/```js\n?/g, '').replace(/```\n?/g, '');
 
+    await addAgentMessage('JS Agent', 'ضفت كل التفاعلات المطلوبة 🎯');
+    
     await supabase
       .from('projects')
       .update({ 
@@ -143,6 +172,8 @@ serve(async (req) => {
 
     // Agent 4: Review Agent
     console.log('Starting Review Agent...');
+    await addAgentMessage('Review Agent', 'خليني أراجع الكود وأتأكد إن كل حاجة تمام 🔍');
+    
     const reviewResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -172,6 +203,8 @@ serve(async (req) => {
     reviewedCode = reviewedCode.replace(/```json\n?/g, '').replace(/```\n?/g, '');
     const reviewed = JSON.parse(reviewedCode);
 
+    await addAgentMessage('Review Agent', 'راجعت كل حاجة وحسنت الكود، جاهز للنشر! 👍');
+    
     await supabase
       .from('projects')
       .update({ 
@@ -185,6 +218,8 @@ serve(async (req) => {
 
     // Agent 5: Publish Agent
     console.log('Starting Publish Agent...');
+    await addAgentMessage('Publish Agent', 'بنشر المشروع دلوقتي 🚀');
+    
     await supabase
       .from('projects')
       .update({ 
@@ -194,6 +229,7 @@ serve(async (req) => {
       })
       .eq('id', projectId);
 
+    await addAgentMessage('Publish Agent', 'تم النشر بنجاح! المشروع جاهز 🎉');
     console.log('All agents completed successfully!');
 
     return new Response(
