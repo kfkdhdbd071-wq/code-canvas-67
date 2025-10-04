@@ -62,7 +62,18 @@ serve(async (req) => {
       body: JSON.stringify({
         contents: [{
           parts: [{
-            text: `أنت وكيل متخصص في كتابة HTML. اكتب كود HTML نظيف ومنظم بناءً على الفكرة المعطاة. استخدم HTML5 الحديث مع اللغة العربية (lang="ar" dir="rtl"). أضف meta tags مناسبة. أرجع الكود فقط بدون شرح.\n\nالفكرة: ${idea}`
+            text: `أنت وكيل متخصص في كتابة HTML عصري ومبدع. اكتب كود HTML5 حديث ومنظم بناءً على الفكرة المعطاة:
+
+- استخدم HTML5 الحديث مع اللغة العربية (lang="ar" dir="rtl")
+- أضف meta tags مناسبة للـ SEO
+- استخدم semantic HTML (header, main, section, article, footer)
+- أضف data attributes للعناصر التفاعلية
+- استخدم بنية واضحة ومنظمة تسهل التنسيق والتفاعل
+- أضف classes وصفية للعناصر المهمة
+
+الفكرة: ${idea}
+
+أرجع الكود فقط بدون شرح أو تعليقات.`
           }]
         }],
         generationConfig: {
@@ -100,7 +111,35 @@ serve(async (req) => {
       body: JSON.stringify({
         contents: [{
           parts: [{
-            text: `أنت وكيل متخصص في كتابة CSS. اكتب كود CSS جميل واحترافي يناسب الكود HTML المعطى. استخدم تصميم عصري وألوان متناسقة ودعم RTL. أرجع الكود فقط بدون شرح.\n\nHTML:\n${htmlCode}\n\nالفكرة: ${idea}`
+            text: `أنت وكيل متخصص في كتابة CSS مبدع وعصري. اكتب كود CSS احترافي ومميز يناسب الكود HTML المعطى:
+
+CRITICAL CSS REQUIREMENTS:
+- استخدم تصميم عصري جداً مع ألوان متناسقة وجذابة
+- أضف gradients مميزة وجميلة (linear-gradient, radial-gradient)
+- استخدم shadows متعددة المستويات لعمق التصميم (box-shadow, text-shadow)
+- أضف animations و transitions سلسة على جميع العناصر التفاعلية
+- استخدم modern CSS features (backdrop-filter, clip-path, transform)
+- أضف hover effects مميزة (scale, rotate, color changes)
+- استخدم keyframe animations للعناصر المهمة (@keyframes)
+- أضف smooth scrolling و scroll animations
+- استخدم CSS Grid و Flexbox للتخطيط
+- دعم كامل لـ RTL والعربية
+- تصميم responsive كامل
+- استخدم CSS variables للألوان والقيم المتكررة
+
+مثال للأنيميشن المطلوب:
+- fade-in animations للعناصر عند الظهور
+- slide-in من الجوانب
+- pulse و bounce للأزرار
+- gradient animations للخلفيات
+- hover transformations
+
+HTML:
+${htmlCode}
+
+الفكرة: ${idea}
+
+أرجع الكود فقط بدون شرح أو تعليقات.`
           }]
         }],
         generationConfig: {
@@ -138,7 +177,41 @@ serve(async (req) => {
       body: JSON.stringify({
         contents: [{
           parts: [{
-            text: `أنت وكيل متخصص في كتابة JavaScript. اكتب كود JavaScript نظيف وفعال يضيف التفاعلية للموقع. استخدم ES6+ الحديث. أرجع الكود فقط بدون شرح.\n\nHTML:\n${htmlCode}\n\nCSS:\n${cssCode}\n\nالفكرة: ${idea}`
+            text: `أنت وكيل متخصص في كتابة JavaScript حديث وتفاعلي. اكتب كود JavaScript مميز يضيف تفاعلية قوية للموقع:
+
+CRITICAL JS REQUIREMENTS:
+- استخدم ES6+ الحديث (const, let, arrow functions, async/await)
+- أضف تفاعلات ديناميكية وسلسة لجميع العناصر
+- استخدم Intersection Observer لـ scroll animations
+- أضف smooth scrolling للروابط الداخلية
+- استخدم event delegation للأداء الأفضل
+- أضف loading states و transitions بين الحالات
+- استخدم requestAnimationFrame للأنيميشن السلس
+- أضف parallax effects إذا كان مناسباً
+- استخدم localStorage لحفظ التفضيلات إن أمكن
+- أضف keyboard navigation support
+- تأكد من accessibility (ARIA labels)
+- أضف error handling مناسب
+
+أمثلة للتفاعلات المطلوبة:
+- Scroll reveal animations للعناصر
+- Counter animations للأرقام
+- Typing effect للنصوص المهمة
+- Image lazy loading
+- Form validation مع feedback مباشر
+- Modal/Dialog interactions
+- Smooth page transitions
+- Interactive hover effects
+
+HTML:
+${htmlCode}
+
+CSS:
+${cssCode}
+
+الفكرة: ${idea}
+
+أرجع الكود فقط بدون شرح أو تعليقات.`
           }]
         }],
         generationConfig: {
@@ -176,7 +249,32 @@ serve(async (req) => {
       body: JSON.stringify({
         contents: [{
           parts: [{
-            text: `أنت وكيل متخصص في مراجعة الأكواد. راجع الأكواد وأصلح أي أخطاء. تأكد من أن الكود نظيف ويعمل بشكل صحيح. أرجع الأكواد المحسنة بصيغة JSON فقط: {"html": "...", "css": "...", "js": "..."}\n\nHTML:\n${htmlCode}\n\nCSS:\n${cssCode}\n\nJavaScript:\n${jsCode}`
+            text: `أنت وكيل متخصص في مراجعة وتحسين الأكواد. راجع الأكواد التالية وحسّنها:
+
+REVIEW CHECKLIST:
+- تأكد من وجود animations و transitions كافية
+- تحقق من جودة التصميم والألوان والـ gradients
+- تأكد من وجود hover effects مميزة
+- راجع الـ JavaScript للتأكد من التفاعلية القوية
+- أضف أي أنيميشن أو تفاعل ناقص
+- حسّن الأداء (optimize animations, use transform instead of position)
+- تأكد من accessibility و semantic HTML
+- راجع responsive design
+- تأكد من RTL support
+- أصلح أي أخطاء في الكود
+- حسّن structure و readability
+
+HTML:
+${htmlCode}
+
+CSS:
+${cssCode}
+
+JavaScript:
+${jsCode}
+
+أرجع الأكواد المحسنة بصيغة JSON فقط بدون أي شرح أو تعليقات:
+{"html": "...", "css": "...", "js": "..."}`
           }]
         }],
         generationConfig: {
