@@ -14,11 +14,11 @@ serve(async (req) => {
   try {
     const { projectId, idea, userId } = await req.json();
     
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     
-    if (!LOVABLE_API_KEY || !SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    if (!GEMINI_API_KEY || !SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
       throw new Error('Missing required environment variables');
     }
 
@@ -54,30 +54,28 @@ serve(async (req) => {
     console.log('Starting HTML Agent...');
     await addAgentMessage('HTML Agent', 'بدأت العمل على بناء هيكل الصفحة 🚀');
     
-    const htmlResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    const htmlResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages: [
-          {
-            role: 'system',
-            content: 'أنت وكيل متخصص في كتابة HTML. اكتب كود HTML نظيف ومنظم بناءً على الفكرة المعطاة. استخدم HTML5 الحديث مع اللغة العربية (lang="ar" dir="rtl"). أضف meta tags مناسبة. أرجع الكود فقط بدون شرح.'
-          },
-          {
-            role: 'user',
-            content: `اكتب كود HTML كامل لهذه الفكرة: ${idea}`
-          }
-        ],
-        temperature: 0.7,
+        contents: [{
+          parts: [{
+            text: `أنت وكيل متخصص في كتابة HTML. اكتب كود HTML نظيف ومنظم بناءً على الفكرة المعطاة. استخدم HTML5 الحديث مع اللغة العربية (lang="ar" dir="rtl"). أضف meta tags مناسبة. أرجع الكود فقط بدون شرح.\n\nالفكرة: ${idea}`
+          }]
+        }],
+        generationConfig: {
+          temperature: 0.7,
+          topK: 40,
+          topP: 0.95,
+          maxOutputTokens: 8192,
+        }
       }),
     });
 
     const htmlData = await htmlResponse.json();
-    const htmlCode = htmlData.choices[0].message.content.replace(/```html\n?/g, '').replace(/```\n?/g, '');
+    const htmlCode = htmlData.candidates[0].content.parts[0].text.replace(/```html\n?/g, '').replace(/```\n?/g, '');
 
     await addAgentMessage('HTML Agent', 'انتهيت من بناء الهيكل الأساسي للصفحة ✅');
     
@@ -94,30 +92,28 @@ serve(async (req) => {
     console.log('Starting CSS Agent...');
     await addAgentMessage('CSS Agent', 'تمام! هبدأ أنسق التصميم دلوقتي 🎨');
     
-    const cssResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    const cssResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages: [
-          {
-            role: 'system',
-            content: 'أنت وكيل متخصص في كتابة CSS. اكتب كود CSS جميل واحترافي يناسب الكود HTML المعطى. استخدم تصميم عصري وألوان متناسقة ودعم RTL. أرجع الكود فقط بدون شرح.'
-          },
-          {
-            role: 'user',
-            content: `اكتب كود CSS لهذا HTML:\n\n${htmlCode}\n\nالفكرة: ${idea}`
-          }
-        ],
-        temperature: 0.7,
+        contents: [{
+          parts: [{
+            text: `أنت وكيل متخصص في كتابة CSS. اكتب كود CSS جميل واحترافي يناسب الكود HTML المعطى. استخدم تصميم عصري وألوان متناسقة ودعم RTL. أرجع الكود فقط بدون شرح.\n\nHTML:\n${htmlCode}\n\nالفكرة: ${idea}`
+          }]
+        }],
+        generationConfig: {
+          temperature: 0.7,
+          topK: 40,
+          topP: 0.95,
+          maxOutputTokens: 8192,
+        }
       }),
     });
 
     const cssData = await cssResponse.json();
-    const cssCode = cssData.choices[0].message.content.replace(/```css\n?/g, '').replace(/```\n?/g, '');
+    const cssCode = cssData.candidates[0].content.parts[0].text.replace(/```css\n?/g, '').replace(/```\n?/g, '');
 
     await addAgentMessage('CSS Agent', 'خلصت التنسيق والصفحة بقت جميلة 💅');
     
@@ -134,30 +130,28 @@ serve(async (req) => {
     console.log('Starting JavaScript Agent...');
     await addAgentMessage('JS Agent', 'حلو! دوري دلوقتي أضيف التفاعلية ⚡');
     
-    const jsResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    const jsResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages: [
-          {
-            role: 'system',
-            content: 'أنت وكيل متخصص في كتابة JavaScript. اكتب كود JavaScript نظيف وفعال يضيف التفاعلية للموقع. استخدم ES6+ الحديث. أرجع الكود فقط بدون شرح.'
-          },
-          {
-            role: 'user',
-            content: `اكتب كود JavaScript لهذا الموقع:\n\nHTML:\n${htmlCode}\n\nCSS:\n${cssCode}\n\nالفكرة: ${idea}`
-          }
-        ],
-        temperature: 0.7,
+        contents: [{
+          parts: [{
+            text: `أنت وكيل متخصص في كتابة JavaScript. اكتب كود JavaScript نظيف وفعال يضيف التفاعلية للموقع. استخدم ES6+ الحديث. أرجع الكود فقط بدون شرح.\n\nHTML:\n${htmlCode}\n\nCSS:\n${cssCode}\n\nالفكرة: ${idea}`
+          }]
+        }],
+        generationConfig: {
+          temperature: 0.7,
+          topK: 40,
+          topP: 0.95,
+          maxOutputTokens: 8192,
+        }
       }),
     });
 
     const jsData = await jsResponse.json();
-    const jsCode = jsData.choices[0].message.content.replace(/```javascript\n?/g, '').replace(/```js\n?/g, '').replace(/```\n?/g, '');
+    const jsCode = jsData.candidates[0].content.parts[0].text.replace(/```javascript\n?/g, '').replace(/```js\n?/g, '').replace(/```\n?/g, '');
 
     await addAgentMessage('JS Agent', 'ضفت كل التفاعلات المطلوبة 🎯');
     
@@ -174,30 +168,28 @@ serve(async (req) => {
     console.log('Starting Review Agent...');
     await addAgentMessage('Review Agent', 'خليني أراجع الكود وأتأكد إن كل حاجة تمام 🔍');
     
-    const reviewResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    const reviewResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages: [
-          {
-            role: 'system',
-            content: 'أنت وكيل متخصص في مراجعة الأكواد. راجع الأكواد وأصلح أي أخطاء. تأكد من أن الكود نظيف ويعمل بشكل صحيح. أرجع الأكواد المحسنة بصيغة JSON: {"html": "...", "css": "...", "js": "..."}'
-          },
-          {
-            role: 'user',
-            content: `راجع وحسن هذه الأكواد:\n\nHTML:\n${htmlCode}\n\nCSS:\n${cssCode}\n\nJavaScript:\n${jsCode}`
-          }
-        ],
-        temperature: 0.3,
+        contents: [{
+          parts: [{
+            text: `أنت وكيل متخصص في مراجعة الأكواد. راجع الأكواد وأصلح أي أخطاء. تأكد من أن الكود نظيف ويعمل بشكل صحيح. أرجع الأكواد المحسنة بصيغة JSON فقط: {"html": "...", "css": "...", "js": "..."}\n\nHTML:\n${htmlCode}\n\nCSS:\n${cssCode}\n\nJavaScript:\n${jsCode}`
+          }]
+        }],
+        generationConfig: {
+          temperature: 0.3,
+          topK: 40,
+          topP: 0.95,
+          maxOutputTokens: 8192,
+        }
       }),
     });
 
     const reviewData = await reviewResponse.json();
-    let reviewedCode = reviewData.choices[0].message.content;
+    let reviewedCode = reviewData.candidates[0].content.parts[0].text;
     
     // Extract JSON from markdown code blocks if present
     reviewedCode = reviewedCode.replace(/```json\n?/g, '').replace(/```\n?/g, '');
