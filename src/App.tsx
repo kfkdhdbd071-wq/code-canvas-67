@@ -14,6 +14,7 @@ import PublicProject from "./pages/PublicProject";
 import Community from "./pages/Community";
 import NotFound from "./pages/NotFound";
 import AIAgentsBuilder from "./pages/AIAgentsBuilder";
+import AIAgentsContinue from "./pages/AIAgentsContinue";
 
 const queryClient = new QueryClient();
 
@@ -42,6 +43,11 @@ const App = () => (
             <Route path="/ai-agents/:projectId" element={
               <ProtectedRoute>
                 <AIAgentsBuilder />
+              </ProtectedRoute>
+            } />
+            <Route path="/ai-agents-continue/:projectId" element={
+              <ProtectedRoute>
+                <AIAgentsContinue />
               </ProtectedRoute>
             } />
             <Route path="/p/:identifier" element={<PublicProject />} />

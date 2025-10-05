@@ -202,24 +202,36 @@ const AIAgentsBuilder = () => {
         )}
 
         {status === "completed" && (
-          <div className="mt-8 flex gap-4">
-            <Button
-              onClick={() => navigate(`/editor/${projectId}`)}
-              className="flex-1"
-              size="lg"
-            >
-              فتح المحرر <ArrowRight className="mr-2 h-5 w-5" />
-            </Button>
-            <Button
-              onClick={() => {
-                const identifier = projectData?.custom_url || projectId;
-                window.open(`/p/${identifier}`, '_blank');
-              }}
-              variant="outline"
-              size="lg"
-            >
-              عرض الموقع المنشور
-            </Button>
+          <div className="mt-8 space-y-4">
+            <div className="flex gap-4">
+              <Button
+                onClick={() => navigate(`/ai-agents-continue/${projectId}`)}
+                className="flex-1"
+                size="lg"
+                variant="hero"
+              >
+                إكمال البناء 🚀
+              </Button>
+            </div>
+            <div className="flex gap-4">
+              <Button
+                onClick={() => navigate(`/editor/${projectId}`)}
+                className="flex-1"
+                size="lg"
+              >
+                فتح المحرر <ArrowRight className="mr-2 h-5 w-5" />
+              </Button>
+              <Button
+                onClick={() => {
+                  const identifier = projectData?.custom_url || projectId;
+                  window.open(`/p/${identifier}`, '_blank');
+                }}
+                variant="outline"
+                size="lg"
+              >
+                عرض الموقع المنشور
+              </Button>
+            </div>
           </div>
         )}
 
