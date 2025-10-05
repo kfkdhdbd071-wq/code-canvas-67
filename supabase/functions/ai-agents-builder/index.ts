@@ -291,7 +291,35 @@ ${jsCode}
     
     // Extract JSON from markdown code blocks if present
     reviewedCode = reviewedCode.replace(/```json\n?/g, '').replace(/```\n?/g, '');
-    const reviewed = JSON.parse(reviewedCode);
+    
+    let reviewed;
+    try {
+      reviewed = JSON.parse(reviewedCode);
+    } catch (parseError) {
+      console.error('Failed to parse review JSON, retrying with cleaned text:', parseError);
+      // Try to extract JSON object from text
+      const jsonMatch = reviewedCode.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        try {
+          reviewed = JSON.parse(jsonMatch[0]);
+        } catch (retryError) {
+          console.error('Retry failed, using original codes:', retryError);
+          // Fallback to original codes if parsing fails
+          reviewed = {
+            html: htmlCode,
+            css: cssCode,
+            js: jsCode
+          };
+        }
+      } else {
+        // No JSON found, use original codes
+        reviewed = {
+          html: htmlCode,
+          css: cssCode,
+          js: jsCode
+        };
+      }
+    }
 
     await addAgentMessage('Review Agent', 'راجعت كل حاجة وحسنت الكود، جاهز للنشر! 👍');
     
