@@ -22,11 +22,27 @@ const AIAgentsContinue = () => {
   const [previewContent, setPreviewContent] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Load messages from localStorage on mount
   useEffect(() => {
     if (projectId) {
+      const savedMessages = localStorage.getItem(`chat_messages_${projectId}`);
+      if (savedMessages) {
+        try {
+          setMessages(JSON.parse(savedMessages));
+        } catch (e) {
+          console.error('Error loading messages:', e);
+        }
+      }
       fetchProject();
     }
   }, [projectId]);
+
+  // Save messages to localStorage whenever they change
+  useEffect(() => {
+    if (projectId && messages.length > 0) {
+      localStorage.setItem(`chat_messages_${projectId}`, JSON.stringify(messages));
+    }
+  }, [messages, projectId]);
 
   useEffect(() => {
     if (project) {
@@ -54,13 +70,16 @@ const AIAgentsContinue = () => {
       navigate('/dashboard');
     } else {
       setProject(data);
-      setMessages([
-        {
-          role: "assistant",
-          content: "مرحباً! أنا هنا لمساعدتك في تطوير مشروعك. أخبرني ما التعديلات التي تريدها وسأقوم بتنفيذها فوراً.",
-          timestamp: new Date().toISOString()
-        }
-      ]);
+      // Only add welcome message if no messages exist
+      if (messages.length === 0) {
+        setMessages([
+          {
+            role: "assistant",
+            content: "مرحباً! أنا هنا لمساعدتك في تطوير مشروعك. أخبرني ما التعديلات التي تريدها وسأقوم بتنفيذها فوراً.",
+            timestamp: new Date().toISOString()
+          }
+        ]);
+      }
     }
     setLoading(false);
   };

@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Code, Play, Save, Share, Home, Settings, Download, Users, Globe, Eye, EyeOff, RotateCcw } from "lucide-react";
+import { Code, Play, Save, Share, Home, Settings, Download, Users, Globe, Eye, EyeOff, RotateCcw, MessageSquare } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -367,6 +367,14 @@ document.addEventListener('click', function() {
                 <Button variant="default" size="sm" onClick={handlePublish}>
                   <Share className="h-4 w-4 mr-2" />
                   {project?.is_published ? "تحديث النشر" : "نشر"}
+                </Button>
+                <Button 
+                  variant="hero" 
+                  size="sm" 
+                  onClick={() => navigate(`/ai-agents-continue/${projectId}`)}
+                >
+                  <MessageSquare className="h-4 w-4 mr-2" />
+                  إكمال المحادثة
                 </Button>
                 <Button 
                   variant={showCommunityToggle ? "default" : "outline"} 
