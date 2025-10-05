@@ -70,8 +70,9 @@ const AIAgentsContinue = () => {
       navigate('/dashboard');
     } else {
       setProject(data);
-      // Only add welcome message if no messages exist
-      if (messages.length === 0) {
+      // Check localStorage directly instead of state
+      const savedMessages = localStorage.getItem(`chat_messages_${projectId}`);
+      if (!savedMessages) {
         setMessages([
           {
             role: "assistant",
