@@ -79,7 +79,19 @@ ${currentCode.js}
       }),
     });
 
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error('Gemini API error:', response.status, errorData);
+      throw new Error(`Gemini API error: ${response.status} - ${errorData}`);
+    }
+
     const data = await response.json();
+    
+    if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
+      console.error('Invalid Gemini response:', JSON.stringify(data));
+      throw new Error('Invalid response from Gemini API');
+    }
+    
     let resultText = data.candidates[0].content.parts[0].text;
     
     // Extract JSON from markdown code blocks if present
