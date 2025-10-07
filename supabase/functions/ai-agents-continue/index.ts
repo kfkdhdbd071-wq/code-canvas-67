@@ -6,6 +6,95 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Helper function to get current API key based on rotation
+async function getCurrentApiKey(supabase: any) {
+  const { data: rotation, error } = await supabase
+    .from('api_key_rotation')
+    .select('current_key_index, last_rotation_time')
+    .eq('service_name', 'gemini')
+    .single();
+
+  if (error) {
+    console.error('Error fetching rotation data:', error);
+    return { key: Deno.env.get('GEMINI_API_KEY'), index: 1 };
+  }
+
+  const now = new Date();
+  const lastRotation = new Date(rotation.last_rotation_time);
+  const hoursSinceRotation = (now.getTime() - lastRotation.getTime()) / (1000 * 60 * 60);
+
+  // If more than 1 hour has passed, rotate to next key
+  if (hoursSinceRotation >= 1) {
+    const nextIndex = rotation.current_key_index + 1;
+    const nextKey = Deno.env.get(`GEMINI_API_KEY_${nextIndex}`);
+    
+    // If next key exists, use it and update rotation
+    if (nextKey) {
+      await supabase
+        .from('api_key_rotation')
+        .update({
+          current_key_index: nextIndex,
+          last_rotation_time: now.toISOString()
+        })
+        .eq('service_name', 'gemini');
+      
+      console.log(`Rotated to GEMINI_API_KEY_${nextIndex} after 1 hour`);
+      return { key: nextKey, index: nextIndex };
+    } else {
+      // No more keys, reset to 1
+      await supabase
+        .from('api_key_rotation')
+        .update({
+          current_key_index: 1,
+          last_rotation_time: now.toISOString()
+        })
+        .eq('service_name', 'gemini');
+      
+      console.log('Reset to GEMINI_API_KEY (no more keys available)');
+      return { key: Deno.env.get('GEMINI_API_KEY'), index: 1 };
+    }
+  }
+
+  // Use current key
+  const currentIndex = rotation.current_key_index;
+  const currentKey = currentIndex === 1 
+    ? Deno.env.get('GEMINI_API_KEY')
+    : Deno.env.get(`GEMINI_API_KEY_${currentIndex}`);
+  
+  return { key: currentKey, index: currentIndex };
+}
+
+// Helper function to try next API key on 429 error
+async function tryNextApiKey(supabase: any, currentIndex: number) {
+  const nextIndex = currentIndex + 1;
+  const nextKey = Deno.env.get(`GEMINI_API_KEY_${nextIndex}`);
+  
+  if (nextKey) {
+    await supabase
+      .from('api_key_rotation')
+      .update({
+        current_key_index: nextIndex,
+        last_rotation_time: new Date().toISOString()
+      })
+      .eq('service_name', 'gemini');
+    
+    console.log(`Switched to GEMINI_API_KEY_${nextIndex} due to quota error`);
+    return { key: nextKey, index: nextIndex };
+  } else {
+    // Reset to first key
+    await supabase
+      .from('api_key_rotation')
+      .update({
+        current_key_index: 1,
+        last_rotation_time: new Date().toISOString()
+      })
+      .eq('service_name', 'gemini');
+    
+    console.log('Reset to GEMINI_API_KEY due to quota error (no more keys)');
+    return { key: Deno.env.get('GEMINI_API_KEY'), index: 1 };
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -14,16 +103,22 @@ serve(async (req) => {
   try {
     const { projectId, message, currentCode } = await req.json();
     
-    const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
+    const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     
-    if (!GEMINI_API_KEY) {
-      throw new Error('Missing GEMINI_API_KEY');
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+      throw new Error('Missing required environment variables');
     }
+
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    
+    // Get current API key based on rotation
+    let { key: GEMINI_API_KEY, index: currentKeyIndex } = await getCurrentApiKey(supabase);
 
     console.log('Processing modification request:', message);
 
     // Call Gemini API to modify the code based on user request
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`, {
+    let response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -89,6 +184,82 @@ ${currentCode.js}
         }
       }),
     });
+
+    // Handle 429 error by trying next API key
+    if (response.status === 429) {
+      console.log('Quota exceeded, trying next API key...');
+      const nextKey = await tryNextApiKey(supabase, currentKeyIndex);
+      GEMINI_API_KEY = nextKey.key;
+      currentKeyIndex = nextKey.index;
+      
+      // Retry with new key
+      response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{
+              text: `أنت وكيل ذكاء اصطناعي متخصص في تعديل مواقع الويب بناءً على طلبات المستخدمين.
+
+الأكواد الحالية للمشروع:
+
+HTML:
+\`\`\`html
+${currentCode.html}
+\`\`\`
+
+CSS:
+\`\`\`css
+${currentCode.css}
+\`\`\`
+
+JavaScript:
+\`\`\`javascript
+${currentCode.js}
+\`\`\`
+
+طلب المستخدم: ${message}
+
+مهمتك:
+1. فهم طلب المستخدم بدقة
+2. تعديل الكود المناسب (HTML أو CSS أو JavaScript أو الثلاثة)
+3. الحفاظ على الكود الموجود وإضافة/تعديل فقط ما هو مطلوب
+4. التأكد من أن التعديلات تعمل بشكل صحيح ومتناسقة مع باقي الكود
+5. استخدام تقنيات حديثة وأفضل الممارسات
+6. إضافة تأثيرات وأنيميشن جميلة إذا كان مناسباً
+7. التأكد من دعم اللغة العربية (RTL) في جميع التعديلات
+
+⚠️ CRITICAL - المحتوى:
+- اكتب دائماً محتوى حقيقي ومفصل وواقعي 100%
+- ممنوع منعاً باتاً استخدام placeholders أو أمثلة وهمية
+- ممنوع كتابة "المثال 1" أو "الموقع 1" أو "المقال 1" أو "العنصر 1"
+- اكتب أسماء حقيقية ومعلومات واقعية تناسب طلب المستخدم
+- إذا طلب المستخدم محتوى عن مواقع، اكتب أسماء مواقع حقيقية موجودة
+- إذا طلب محتوى عن منتجات، اكتب أسماء منتجات حقيقية
+- إذا طلب محتوى عن أشخاص، اكتب أسماء أشخاص حقيقيين
+- اكتب محتوى غني ومفيد وكامل بدون اختصارات
+- كل عنوان، نص، وصف يجب أن يكون محتوى حقيقي مكتوب بالكامل
+
+أرجع الأكواد المعدلة بصيغة JSON فقط بدون أي شرح أو تعليقات:
+{
+  "html": "الكود HTML الكامل المعدل",
+  "css": "الكود CSS الكامل المعدل",
+  "js": "الكود JavaScript الكامل المعدل",
+  "message": "رسالة قصيرة توضح ما تم تعديله"
+}`
+            }]
+          }],
+          generationConfig: {
+            temperature: 0.7,
+            topK: 40,
+            topP: 0.95,
+            maxOutputTokens: 8192,
+          }
+        }),
+      });
+    }
 
     if (!response.ok) {
       const errorData = await response.text();
