@@ -180,7 +180,7 @@ ${currentCode.js}
           temperature: 0.7,
           topK: 40,
           topP: 0.95,
-          maxOutputTokens: 8192,
+          maxOutputTokens: 32768,
         }
       }),
     });
@@ -255,7 +255,7 @@ ${currentCode.js}
             temperature: 0.7,
             topK: 40,
             topP: 0.95,
-            maxOutputTokens: 8192,
+            maxOutputTokens: 32768,
           }
         }),
       });
@@ -283,13 +283,47 @@ ${currentCode.js}
     try {
       result = JSON.parse(resultText);
     } catch (parseError) {
-      console.error('Failed to parse JSON:', resultText);
-      // Try to extract JSON object from text
-      const jsonMatch = resultText.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        result = JSON.parse(jsonMatch[0]);
-      } else {
-        throw new Error('Could not parse AI response');
+      console.error('Failed to parse JSON:', resultText.substring(0, 500) + '...');
+      
+      // Try to fix common JSON issues
+      try {
+        // Remove any trailing incomplete strings or objects
+        let cleanedText = resultText;
+        
+        // Find the last complete closing brace
+        let braceCount = 0;
+        let lastValidIndex = -1;
+        for (let i = 0; i < cleanedText.length; i++) {
+          if (cleanedText[i] === '{') braceCount++;
+          if (cleanedText[i] === '}') {
+            braceCount--;
+            if (braceCount === 0) {
+              lastValidIndex = i + 1;
+            }
+          }
+        }
+        
+        if (lastValidIndex > 0) {
+          cleanedText = cleanedText.substring(0, lastValidIndex);
+          result = JSON.parse(cleanedText);
+          console.log('Successfully parsed cleaned JSON');
+        } else {
+          throw new Error('Could not find valid JSON structure');
+        }
+      } catch (cleanError) {
+        console.error('Failed to clean and parse JSON:', cleanError);
+        
+        // Last resort: try regex extraction
+        const jsonMatch = resultText.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          try {
+            result = JSON.parse(jsonMatch[0]);
+          } catch {
+            throw new Error('Could not parse AI response - JSON format invalid');
+          }
+        } else {
+          throw new Error('Could not parse AI response - no JSON found');
+        }
       }
     }
 
