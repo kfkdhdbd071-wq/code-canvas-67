@@ -141,7 +141,7 @@ const AIAgentsContinue = () => {
       // Remove loading message
       setMessages(prev => prev.filter(m => !m.isLoading));
 
-      if (data.success) {
+      if (data && data.success) {
         // Update project with new code
         const updatedProject = {
           ...project,
@@ -173,6 +173,19 @@ const AIAgentsContinue = () => {
           title: "تم التعديل بنجاح",
           description: "تم تحديث المشروع حسب طلبك",
         });
+      } else if (data && data.success === false) {
+        const errMsg = data.errorMessage || "تعذر تنفيذ التعديل حالياً. حاول مجدداً بعد قليل.";
+        setMessages(prev => [...prev, {
+          role: "assistant",
+          content: errMsg,
+          timestamp: new Date().toISOString()
+        }]);
+        toast({
+          title: "تعذر تنفيذ الطلب",
+          description: errMsg,
+          variant: "destructive",
+        });
+        return;
       }
     } catch (error: any) {
       console.error('Error:', error);
