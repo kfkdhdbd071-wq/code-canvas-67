@@ -105,17 +105,13 @@ serve(async (req) => {
     
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-
+    
     if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-      console.error('Missing required environment variables');
-      return new Response(
-        JSON.stringify({ success: false, errorCode: 'CONFIG', errorMessage: 'Supabase configuration is missing' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      throw new Error('Missing required environment variables');
     }
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-
+    
     // Get current API key based on rotation
     let { key: GEMINI_API_KEY, index: currentKeyIndex } = await getCurrentApiKey(supabase);
 
@@ -130,7 +126,54 @@ serve(async (req) => {
       body: JSON.stringify({
         contents: [{
           parts: [{
-            text: `أنت وكيل ذكاء اصطناعي متخصص في تعديل مواقع الويب بناءً على طلبات المستخدمين.\n\nالأكواد الحالية للمشروع:\n\nHTML:\n\`\`\`html\n${currentCode.html}\n\`\`\`\n\nCSS:\n\`\`\`css\n${currentCode.css}\n\`\`\`\n\nJavaScript:\n\`\`\`javascript\n${currentCode.js}\n\`\`\`\n\nطلب المستخدم: ${message}\n\nمهمتك:\n1. فهم طلب المستخدم بدقة\n2. تعديل الكود المناسب (HTML أو CSS أو JavaScript أو الثلاثة)\n3. الحفاظ على الكود الموجود وإضافة/تعديل فقط ما هو مطلوب\n4. التأكد من أن التعديلات تعمل بشكل صحيح ومتناسقة مع باقي الكود\n5. استخدام تقنيات حديثة وأفضل الممارسات\n6. إضافة تأثيرات وأنيميشن جميلة إذا كان مناسباً\n7. التأكد من دعم اللغة العربية (RTL) في جميع التعديلات\n\n⚠️ CRITICAL - المحتوى:\n- اكتب دائماً محتوى حقيقي ومفصل وواقعي 100%\n- ممنوع منعاً باتاً استخدام placeholders أو أمثلة وهمية\n- ممنوع كتابة \"المثال 1\" أو \"الموقع 1\" أو \"المقال 1\" أو \"العنصر 1\"\n- اكتب أسماء حقيقية ومعلومات واقعية تناسب طلب المستخدم\n- إذا طلب المستخدم محتوى عن مواقع، اكتب أسماء مواقع حقيقية موجودة\n- إذا طلب محتوى عن منتجات، اكتب أسماء منتجات حقيقية\n- إذا طلب محتوى عن أشخاص، اكتب أسماء أشخاص حقيقيين\n- اكتب محتوى غني ومفيد وكامل بدون اختصارات\n- كل عنوان، نص، وصف يجب أن يكون محتوى حقيقي مكتوب بالكامل\n\nأرجع الأكواد المعدلة بصيغة JSON فقط بدون أي شرح أو تعليقات:\n{\n  \"html\": \"الكود HTML الكامل المعدل\",\n  \"css\": \"الكود CSS الكامل المعدل\",\n  \"js\": \"الكود JavaScript الكامل المعدل\",\n  \"message\": \"رسالة قصيرة توضح ما تم تعديله\"\n}`
+            text: `أنت وكيل ذكاء اصطناعي متخصص في تعديل مواقع الويب بناءً على طلبات المستخدمين.
+
+الأكواد الحالية للمشروع:
+
+HTML:
+\`\`\`html
+${currentCode.html}
+\`\`\`
+
+CSS:
+\`\`\`css
+${currentCode.css}
+\`\`\`
+
+JavaScript:
+\`\`\`javascript
+${currentCode.js}
+\`\`\`
+
+طلب المستخدم: ${message}
+
+مهمتك:
+1. فهم طلب المستخدم بدقة
+2. تعديل الكود المناسب (HTML أو CSS أو JavaScript أو الثلاثة)
+3. الحفاظ على الكود الموجود وإضافة/تعديل فقط ما هو مطلوب
+4. التأكد من أن التعديلات تعمل بشكل صحيح ومتناسقة مع باقي الكود
+5. استخدام تقنيات حديثة وأفضل الممارسات
+6. إضافة تأثيرات وأنيميشن جميلة إذا كان مناسباً
+7. التأكد من دعم اللغة العربية (RTL) في جميع التعديلات
+
+⚠️ CRITICAL - المحتوى:
+- اكتب دائماً محتوى حقيقي ومفصل وواقعي 100%
+- ممنوع منعاً باتاً استخدام placeholders أو أمثلة وهمية
+- ممنوع كتابة "المثال 1" أو "الموقع 1" أو "المقال 1" أو "العنصر 1"
+- اكتب أسماء حقيقية ومعلومات واقعية تناسب طلب المستخدم
+- إذا طلب المستخدم محتوى عن مواقع، اكتب أسماء مواقع حقيقية موجودة
+- إذا طلب محتوى عن منتجات، اكتب أسماء منتجات حقيقية
+- إذا طلب محتوى عن أشخاص، اكتب أسماء أشخاص حقيقيين
+- اكتب محتوى غني ومفيد وكامل بدون اختصارات
+- كل عنوان، نص، وصف يجب أن يكون محتوى حقيقي مكتوب بالكامل
+
+أرجع الأكواد المعدلة بصيغة JSON فقط بدون أي شرح أو تعليقات:
+{
+  "html": "الكود HTML الكامل المعدل",
+  "css": "الكود CSS الكامل المعدل",
+  "js": "الكود JavaScript الكامل المعدل",
+  "message": "رسالة قصيرة توضح ما تم تعديله"
+}`
           }]
         }],
         generationConfig: {
@@ -148,7 +191,7 @@ serve(async (req) => {
       const nextKey = await tryNextApiKey(supabase, currentKeyIndex);
       GEMINI_API_KEY = nextKey.key;
       currentKeyIndex = nextKey.index;
-
+      
       // Retry with new key
       response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`, {
         method: 'POST',
@@ -158,7 +201,54 @@ serve(async (req) => {
         body: JSON.stringify({
           contents: [{
             parts: [{
-              text: `أنت وكيل ذكاء اصطناعي متخصص في تعديل مواقع الويب بناءً على طلبات المستخدمين.\n\nالأكواد الحالية للمشروع:\n\nHTML:\n\`\`\`html\n${currentCode.html}\n\`\`\`\n\nCSS:\n\`\`\`css\n${currentCode.css}\n\`\`\`\n\nJavaScript:\n\`\`\`javascript\n${currentCode.js}\n\`\`\`\n\nطلب المستخدم: ${message}\n\nمهمتك:\n1. فهم طلب المستخدم بدقة\n2. تعديل الكود المناسب (HTML أو CSS أو JavaScript أو الثلاثة)\n3. الحفاظ على الكود الموجود وإضافة/تعديل فقط ما هو مطلوب\n4. التأكد من أن التعديلات تعمل بشكل صحيح ومتناسقة مع باقي الكود\n5. استخدام تقنيات حديثة وأفضل الممارسات\n6. إضافة تأثيرات وأنيميشن جميلة إذا كان مناسباً\n7. التأكد من دعم اللغة العربية (RTL) في جميع التعديلات\n\n⚠️ CRITICAL - المحتوى:\n- اكتب دائماً محتوى حقيقي ومفصل وواقعي 100%\n- ممنوع منعاً باتاً استخدام placeholders أو أمثلة وهمية\n- ممنوع كتابة \"المثال 1\" أو \"الموقع 1\" أو \"المقال 1\" أو \"العنصر 1\"\n- اكتب أسماء حقيقية ومعلومات واقعية تناسب طلب المستخدم\n- إذا طلب المستخدم محتوى عن مواقع، اكتب أسماء مواقع حقيقية موجودة\n- إذا طلب محتوى عن منتجات، اكتب أسماء منتجات حقيقية\n- إذا طلب محتوى عن أشخاص، اكتب أسماء أشخاص حقيقيين\n- اكتب محتوى غني ومفيد وكامل بدون اختصارات\n- كل عنوان، نص، وصف يجب أن يكون محتوى حقيقي مكتوب بالكامل\n\nأرجع الأكواد المعدلة بصيغة JSON فقط بدون أي شرح أو تعليقات:\n{\n  \"html\": \"الكود HTML الكامل المعدل\",\n  \"css\": \"الكود CSS الكامل المعدل\",\n  \"js\": \"الكود JavaScript الكامل المعدل\",\n  \"message\": \"رسالة قصيرة توضح ما تم تعديله\"\n}`
+              text: `أنت وكيل ذكاء اصطناعي متخصص في تعديل مواقع الويب بناءً على طلبات المستخدمين.
+
+الأكواد الحالية للمشروع:
+
+HTML:
+\`\`\`html
+${currentCode.html}
+\`\`\`
+
+CSS:
+\`\`\`css
+${currentCode.css}
+\`\`\`
+
+JavaScript:
+\`\`\`javascript
+${currentCode.js}
+\`\`\`
+
+طلب المستخدم: ${message}
+
+مهمتك:
+1. فهم طلب المستخدم بدقة
+2. تعديل الكود المناسب (HTML أو CSS أو JavaScript أو الثلاثة)
+3. الحفاظ على الكود الموجود وإضافة/تعديل فقط ما هو مطلوب
+4. التأكد من أن التعديلات تعمل بشكل صحيح ومتناسقة مع باقي الكود
+5. استخدام تقنيات حديثة وأفضل الممارسات
+6. إضافة تأثيرات وأنيميشن جميلة إذا كان مناسباً
+7. التأكد من دعم اللغة العربية (RTL) في جميع التعديلات
+
+⚠️ CRITICAL - المحتوى:
+- اكتب دائماً محتوى حقيقي ومفصل وواقعي 100%
+- ممنوع منعاً باتاً استخدام placeholders أو أمثلة وهمية
+- ممنوع كتابة "المثال 1" أو "الموقع 1" أو "المقال 1" أو "العنصر 1"
+- اكتب أسماء حقيقية ومعلومات واقعية تناسب طلب المستخدم
+- إذا طلب المستخدم محتوى عن مواقع، اكتب أسماء مواقع حقيقية موجودة
+- إذا طلب محتوى عن منتجات، اكتب أسماء منتجات حقيقية
+- إذا طلب محتوى عن أشخاص، اكتب أسماء أشخاص حقيقيين
+- اكتب محتوى غني ومفيد وكامل بدون اختصارات
+- كل عنوان، نص، وصف يجب أن يكون محتوى حقيقي مكتوب بالكامل
+
+أرجع الأكواد المعدلة بصيغة JSON فقط بدون أي شرح أو تعليقات:
+{
+  "html": "الكود HTML الكامل المعدل",
+  "css": "الكود CSS الكامل المعدل",
+  "js": "الكود JavaScript الكامل المعدل",
+  "message": "رسالة قصيرة توضح ما تم تعديله"
+}`
             }]
           }],
           generationConfig: {
@@ -174,31 +264,18 @@ serve(async (req) => {
     if (!response.ok) {
       const errorData = await response.text();
       console.error('Gemini API error:', response.status, errorData);
-
-      if (response.status === 429) {
-        return new Response(
-          JSON.stringify({ success: false, errorCode: 'RATE_LIMIT', errorMessage: 'تم تجاوز حد الطلبات. حاول بعد قليل.' }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      return new Response(
-        JSON.stringify({ success: false, errorCode: 'AI_ERROR', errorMessage: 'تعذر الوصول إلى Gemini.' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      throw new Error(`Gemini API error: ${response.status} - ${errorData}`);
     }
 
     const data = await response.json();
+    
     if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
       console.error('Invalid Gemini response:', JSON.stringify(data));
-      return new Response(
-        JSON.stringify({ success: false, errorCode: 'AI_INVALID_RESPONSE', errorMessage: 'استجابة غير صالحة من Gemini' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      throw new Error('Invalid response from Gemini API');
     }
-
-    let resultText = data.candidates[0].content.parts?.[0]?.text ?? '';
-
+    
+    let resultText = data.candidates[0].content.parts[0].text;
+    
     // Extract JSON from markdown code blocks if present
     resultText = resultText.replace(/```json\n?/g, '').replace(/```\n?/g, '');
     
@@ -268,8 +345,11 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in ai-agents-continue:', error);
     return new Response(
-      JSON.stringify({ success: false, errorCode: 'INTERNAL_ERROR', errorMessage: error instanceof Error ? error.message : 'Unknown error' }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({ error: error.message }),
+      { 
+        status: 500, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
     );
   }
 });
