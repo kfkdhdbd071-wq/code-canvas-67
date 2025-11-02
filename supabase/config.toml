@@ -5,6 +5,3 @@ verify_jwt = false
 
 [functions.ai-agents-continue]
 verify_jwt = false
-
-[functions.serve-project]
-verify_jwt = false
