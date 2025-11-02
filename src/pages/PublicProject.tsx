@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Code } from "lucide-react";
@@ -8,12 +8,37 @@ const PublicProject = () => {
   const [project, setProject] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (identifier) {
       fetchProject();
     }
   }, [identifier]);
+
+  useEffect(() => {
+    if (project && containerRef.current) {
+      const fullHTML = project.html_code
+        .replace(
+          '</head>',
+          `<style>${project.css_code}</style>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&display=swap" rel="stylesheet">
+</head>`
+        )
+        .replace(
+          '</body>',
+          `<script>${project.js_code}</script>
+</body>`
+        );
+      
+      // Create a blob URL for the HTML content
+      const blob = new Blob([fullHTML], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      
+      // Navigate to the blob URL to display content without iframe restrictions
+      window.location.replace(url);
+    }
+  }, [project]);
 
   const fetchProject = async () => {
     let query = supabase
@@ -62,26 +87,10 @@ const PublicProject = () => {
     );
   }
 
-  const fullHTML = project.html_code
-    .replace(
-      '</head>',
-      `<style>${project.css_code}</style>
-<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&display=swap" rel="stylesheet">
-</head>`
-    )
-    .replace(
-      '</body>',
-      `<script>${project.js_code}</script>
-</body>`
-    );
-
   return (
-    <iframe
-      srcDoc={fullHTML}
-      className="w-full h-screen border-0"
-      title={project.project_name}
-      sandbox="allow-scripts allow-same-origin allow-forms allow-modals"
-    />
+    <div ref={containerRef} className="min-h-screen flex items-center justify-center">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+    </div>
   );
 };
 
