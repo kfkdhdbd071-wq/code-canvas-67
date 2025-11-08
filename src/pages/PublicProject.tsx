@@ -93,6 +93,16 @@ const PublicProject = () => {
         sandbox="allow-scripts allow-same-origin allow-forms allow-modals"
       />
 
+      <a
+        href="https://lumix-reseash.lovable.app/"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="fixed right-4 top-6 z-50 bg-primary text-primary-foreground px-3 py-1.5 rounded-full shadow-lg hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring transition"
+        aria-label="Made with Lumix"
+      >
+        make with lumix
+      </a>
+
       {/* Welcome Dialog */}
       <Dialog open={showWelcomeDialog} onOpenChange={setShowWelcomeDialog}>
         <DialogContent className="sm:max-w-md">
