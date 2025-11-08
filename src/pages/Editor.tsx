@@ -9,6 +9,14 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import CodeEditor from "@/components/CodeEditor";
 import JSZip from "jszip";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 const Editor = () => {
   const navigate = useNavigate();
@@ -21,6 +29,7 @@ const Editor = () => {
   const [minimizedUI, setMinimizedUI] = useState(false);
   const [autoSave, setAutoSave] = useState(false);
   const [lastSaveTime, setLastSaveTime] = useState<Date | null>(null);
+  const [showPublishDialog, setShowPublishDialog] = useState(false);
   
   const [htmlCode, setHtmlCode] = useState(`<!DOCTYPE html>
 <html lang="ar" dir="rtl">
@@ -193,6 +202,10 @@ document.addEventListener('click', function() {
     }
   };
 
+  const handlePublishClick = () => {
+    setShowPublishDialog(true);
+  };
+
   const handlePublish = async () => {
     if (!project) return;
 
@@ -220,6 +233,7 @@ document.addEventListener('click', function() {
         : `${window.location.origin}/p/${project.id}`;
       
       navigator.clipboard.writeText(url);
+      setShowPublishDialog(false);
       toast({
         title: "تم النشر بنجاح",
         description: "تم نسخ رابط المشروع إلى الحافظة",
@@ -364,7 +378,7 @@ document.addEventListener('click', function() {
                   <Download className="h-4 w-4 mr-2" />
                   تحميل
                 </Button>
-                <Button variant="default" size="sm" onClick={handlePublish}>
+                <Button variant="default" size="sm" onClick={handlePublishClick}>
                   <Share className="h-4 w-4 mr-2" />
                   {project?.is_published ? "تحديث النشر" : "نشر"}
                 </Button>
@@ -485,6 +499,34 @@ document.addEventListener('click', function() {
           />
         </div>
       </div>
+
+      {/* Publish Dialog */}
+      <Dialog open={showPublishDialog} onOpenChange={setShowPublishDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>هذه الميزة مدفوعة</DialogTitle>
+            <DialogDescription className="text-base pt-2">
+              تم توفير هذه الخدمة مجاناً عن طريق منصة <strong>Lumix AI</strong> لتوليد الأبحاث بالذكاء الاصطناعي
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button
+              variant="outline"
+              onClick={() => window.open('https://lumix-reseash.lovable.app/', '_blank')}
+              className="w-full sm:w-auto"
+            >
+              زيارة Lumix AI
+            </Button>
+            <Button
+              variant="default"
+              onClick={handlePublish}
+              className="w-full sm:w-auto"
+            >
+              نشر المشروع
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

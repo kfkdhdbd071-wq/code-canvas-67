@@ -1,13 +1,22 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Code } from "lucide-react";
+import { Code, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const PublicProject = () => {
   const { identifier } = useParams();
   const [project, setProject] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [showWelcomeDialog, setShowWelcomeDialog] = useState(true);
 
   useEffect(() => {
     if (identifier) {
@@ -76,12 +85,60 @@ const PublicProject = () => {
     );
 
   return (
-    <iframe
-      srcDoc={fullHTML}
-      className="w-full h-screen border-0"
-      title={project.project_name}
-      sandbox="allow-scripts allow-same-origin allow-forms allow-modals"
-    />
+    <>
+      <iframe
+        srcDoc={fullHTML}
+        className="w-full h-screen border-0"
+        title={project.project_name}
+        sandbox="allow-scripts allow-same-origin allow-forms allow-modals"
+      />
+
+      {/* Welcome Dialog */}
+      <Dialog open={showWelcomeDialog} onOpenChange={setShowWelcomeDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center justify-between">
+              مستضاف على Lumix Cloud
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowWelcomeDialog(false)}
+                className="h-6 w-6"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </DialogTitle>
+            <DialogDescription className="text-base pt-2 space-y-2">
+              <p>
+                هذا الموقع مستضاف على خدمة <strong>Lumix Cloud</strong>
+              </p>
+              <p>
+                منصة لعمل الأبحاث عن طريق الذكاء الاصطناعي
+              </p>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col sm:flex-row gap-2 pt-4">
+            <Button
+              variant="outline"
+              onClick={() => setShowWelcomeDialog(false)}
+              className="w-full sm:w-auto"
+            >
+              إغلاق
+            </Button>
+            <Button
+              variant="default"
+              onClick={() => {
+                window.open('https://lumix-reseash.lovable.app/', '_blank');
+                setShowWelcomeDialog(false);
+              }}
+              className="w-full sm:w-auto"
+            >
+              زيارة الآن
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 
