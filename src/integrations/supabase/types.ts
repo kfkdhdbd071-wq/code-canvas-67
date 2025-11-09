@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      api_key_rotation: {
+        Row: {
+          created_at: string
+          current_key_index: number
+          id: string
+          last_rotation_time: string
+          service_name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          current_key_index?: number
+          id?: string
+          last_rotation_time?: string
+          service_name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          current_key_index?: number
+          id?: string
+          last_rotation_time?: string
+          service_name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       articles: {
         Row: {
           author_id: string
@@ -162,10 +189,13 @@ export type Database = {
           html_code: string | null
           id: string
           is_published: boolean | null
+          is_subpage: boolean | null
           js_code: string | null
           likes_count: number | null
+          parent_project_id: string | null
           project_name: string
           show_in_community: boolean | null
+          subpage_route: string | null
           updated_at: string
           user_id: string
           view_count: number | null
@@ -184,10 +214,13 @@ export type Database = {
           html_code?: string | null
           id?: string
           is_published?: boolean | null
+          is_subpage?: boolean | null
           js_code?: string | null
           likes_count?: number | null
+          parent_project_id?: string | null
           project_name: string
           show_in_community?: boolean | null
+          subpage_route?: string | null
           updated_at?: string
           user_id: string
           view_count?: number | null
@@ -206,10 +239,13 @@ export type Database = {
           html_code?: string | null
           id?: string
           is_published?: boolean | null
+          is_subpage?: boolean | null
           js_code?: string | null
           likes_count?: number | null
+          parent_project_id?: string | null
           project_name?: string
           show_in_community?: boolean | null
+          subpage_route?: string | null
           updated_at?: string
           user_id?: string
           view_count?: number | null
@@ -218,6 +254,13 @@ export type Database = {
           {
             foreignKeyName: "projects_forked_from_fkey"
             columns: ["forked_from"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_parent_project_id_fkey"
+            columns: ["parent_project_id"]
             isOneToOne: false
             referencedRelation: "projects"
             referencedColumns: ["id"]

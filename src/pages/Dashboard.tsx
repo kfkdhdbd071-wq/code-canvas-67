@@ -62,6 +62,7 @@ const Dashboard = () => {
       .from('projects')
       .select('*')
       .eq('user_id', user?.id)
+      .eq('is_subpage', false) // Hide subpages from dashboard
       .order('updated_at', { ascending: false });
 
     if (error) {

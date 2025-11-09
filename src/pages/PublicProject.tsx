@@ -25,18 +25,50 @@ const PublicProject = () => {
   }, [identifier]);
 
   const fetchProject = async () => {
+    // Check if URL contains a subpage route (e.g., /p/main-id/article-1)
+    const pathParts = window.location.pathname.split('/').filter(Boolean);
+    const subpageRoute = pathParts.length > 2 ? '/' + pathParts.slice(2).join('/') : null;
+
     let query = supabase
       .from('projects')
       .select('*')
       .eq('is_published', true);
 
-    // Check if identifier is a custom URL or project ID
-    if (identifier!.length === 36) {
-      // Likely a UUID
-      query = query.eq('id', identifier);
+    // If we have a subpage route, look for it
+    if (subpageRoute) {
+      const parentIdentifier = pathParts[1];
+      
+      // First get parent project ID
+      let parentQuery = supabase
+        .from('projects')
+        .select('id')
+        .eq('is_published', true);
+      
+      if (parentIdentifier.length === 36) {
+        parentQuery = parentQuery.eq('id', parentIdentifier);
+      } else {
+        parentQuery = parentQuery.eq('custom_url', parentIdentifier);
+      }
+      
+      const { data: parentData } = await parentQuery.single();
+      
+      if (parentData) {
+        // Now look for subpage
+        query = query
+          .eq('parent_project_id', parentData.id)
+          .eq('subpage_route', subpageRoute)
+          .eq('is_subpage', true);
+      }
     } else {
-      // Custom URL
-      query = query.eq('custom_url', identifier);
+      // Regular project lookup
+      if (identifier!.length === 36) {
+        query = query.eq('id', identifier);
+      } else {
+        query = query.eq('custom_url', identifier);
+      }
+      
+      // Make sure we're not getting a subpage
+      query = query.eq('is_subpage', false);
     }
 
     const { data, error } = await query.single();
