@@ -530,19 +530,25 @@ ${cssCode}
       })
       .eq('id', projectId);
 
-    // Agent 4: Review Agent
-    console.log('Starting Review Agent...');
-    await addAgentMessage('Review Agent', 'خليني أراجع الكود وأتأكد إن كل حاجة تمام 🔍');
-    
-    const reviewResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        contents: [{
-          parts: [{
-            text: `أنت وكيل متخصص في مراجعة وتحسين الأكواد. راجع الأكواد التالية وحسّنها:
+    let reviewResponse: Response;
+    let reviewAttempts = 0;
+    const maxReviewAttempts = 3;
+
+    while (true) {
+      console.log(`Starting Review Agent... (attempt ${reviewAttempts + 1})`);
+      await addAgentMessage('Review Agent', reviewAttempts === 0
+        ? 'خليني أراجع الكود وأتأكد إن كل حاجة تمام 🔍'
+        : `إعادة المحاولة بسبب حد الاستخدام... (محاولة ${reviewAttempts + 1}) ⏳`);
+
+      reviewResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{
+              text: `أنت وكيل متخصص في مراجعة وتحسين الأكواد. راجع الأكواد التالية وحسّنها:
 
 REVIEW CHECKLIST:
 - تأكد من وجود animations و transitions كافية
@@ -574,68 +580,83 @@ ${jsCode}
 
 أرجع الأكواد المحسنة بصيغة JSON فقط بدون أي شرح أو تعليقات:
 {"html": "...", "css": "...", "js": "..."}`
-          }]
-        }],
-        generationConfig: {
-          temperature: 0.3,
-          topK: 40,
-          topP: 0.95,
-          maxOutputTokens: 8192,
-        }
-      }),
-    });
+            }]
+          }],
+          generationConfig: {
+            temperature: 0.3,
+            topK: 40,
+            topP: 0.95,
+            maxOutputTokens: 8192,
+          }
+        }),
+      });
 
-    const reviewData = await reviewResponse.json();
-    
-    if (!reviewData.candidates || !reviewData.candidates[0] || !reviewData.candidates[0].content) {
-      console.error('Invalid Review response:', JSON.stringify(reviewData));
-      throw new Error('فشل في الحصول على رد من Review Agent');
+      if (reviewResponse.status === 429 && reviewAttempts < maxReviewAttempts - 1) {
+        console.log('Review Agent: Quota exceeded, trying next API key with backoff...');
+        const nextKey = await tryNextApiKey(supabase, currentKeyIndex);
+        GEMINI_API_KEY = nextKey.key;
+        currentKeyIndex = nextKey.index;
+        // Exponential backoff
+        const backoffMs = 1500 * (reviewAttempts + 1);
+        await new Promise((res) => setTimeout(res, backoffMs));
+        reviewAttempts++;
+        continue;
+      }
+
+      break;
     }
-    
-    let reviewedCode = reviewData.candidates[0].content.parts[0].text;
-    
-    // Extract JSON from markdown code blocks if present
-    reviewedCode = reviewedCode.replace(/```json\n?/g, '').replace(/```\n?/g, '');
-    
-    let reviewed;
+
+    let reviewed: { html: string; css: string; js: string } | null = null;
+
     try {
-      reviewed = JSON.parse(reviewedCode);
-    } catch (parseError) {
-      console.error('Failed to parse review JSON, retrying with cleaned text:', parseError);
-      // Try to extract JSON object from text
-      const jsonMatch = reviewedCode.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        try {
-          reviewed = JSON.parse(jsonMatch[0]);
-        } catch (retryError) {
-          console.error('Retry failed, using original codes:', retryError);
-          // Fallback to original codes if parsing fails
-          reviewed = {
-            html: htmlCode,
-            css: cssCode,
-            js: jsCode
-          };
+      if (reviewResponse.ok) {
+        const reviewData = await reviewResponse.json();
+        if (reviewData.candidates && reviewData.candidates[0]?.content?.parts?.[0]?.text) {
+          let reviewedCode = reviewData.candidates[0].content.parts[0].text;
+          // Extract JSON from markdown code blocks if present
+          reviewedCode = reviewedCode.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+
+          try {
+            reviewed = JSON.parse(reviewedCode);
+          } catch {
+            // Try to extract JSON object from text
+            const jsonMatch = reviewedCode.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+              try {
+                reviewed = JSON.parse(jsonMatch[0]);
+              } catch {
+                reviewed = null;
+              }
+            }
+          }
         }
       } else {
-        // No JSON found, use original codes
-        reviewed = {
-          html: htmlCode,
-          css: cssCode,
-          js: jsCode
-        };
+        console.error('Review Agent HTTP error:', reviewResponse.status, await reviewResponse.text());
       }
+    } catch (e) {
+      console.error('Review Agent parsing error:', e);
     }
 
-    await addAgentMessage('Review Agent', 'راجعت كل حاجة وحسنت الكود، جاهز للنشر! 👍');
-    
+    if (!reviewed) {
+      console.error('Review Agent unavailable or invalid response, falling back to original code.');
+      await addAgentMessage('Review Agent', '⚠️ حدثت مشكلة في خدمة المراجعة (مثلاً حد الاستخدام). تم النشر باستخدام النسخة الحالية.');
+      reviewed = {
+        html: htmlCode,
+        css: cssCode,
+        js: jsCode,
+      };
+    } else {
+      await addAgentMessage('Review Agent', 'راجعت كل حاجة وحسنت الكود، جاهز للنشر! 👍');
+    }
+
     await supabase
       .from('projects')
-      .update({ 
+      .update({
         html_code: reviewed.html || htmlCode,
         css_code: reviewed.css || cssCode,
         js_code: reviewed.js || jsCode,
         ai_agents_status: 'publish_agent',
-        ai_agents_progress: 95
+        ai_agents_progress: 95,
       })
       .eq('id', projectId);
 

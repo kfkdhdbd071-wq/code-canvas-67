@@ -73,6 +73,24 @@ const PublicProject = () => {
 
     const { data, error } = await query.single();
 
+    if ((error || !data) && !subpageRoute && identifier) {
+      // Fallback: إذا زار المستخدم /p/article1.html مباشرةً
+      const fallbackRoute = '/' + identifier;
+      const { data: subData } = await supabase
+        .from('projects')
+        .select('*')
+        .eq('is_published', true)
+        .eq('is_subpage', true)
+        .eq('subpage_route', fallbackRoute)
+        .single();
+
+      if (subData) {
+        setProject(subData);
+        setLoading(false);
+        return;
+      }
+    }
+
     if (error || !data) {
       setNotFound(true);
     } else {
