@@ -239,6 +239,12 @@ serve(async (req) => {
     }
 
     const htmlData = await htmlResponse.json();
+    
+    if (!htmlData.candidates || !htmlData.candidates[0] || !htmlData.candidates[0].content) {
+      console.error('Invalid HTML response:', JSON.stringify(htmlData));
+      throw new Error('فشل في الحصول على رد من HTML Agent');
+    }
+    
     const htmlCode = htmlData.candidates[0].content.parts[0].text.replace(/```html\n?/g, '').replace(/```\n?/g, '');
 
     await addAgentMessage('HTML Agent', 'انتهيت من بناء الهيكل الأساسي للصفحة ✅');
@@ -370,6 +376,12 @@ ${htmlCode}
     }
 
     const cssData = await cssResponse.json();
+    
+    if (!cssData.candidates || !cssData.candidates[0] || !cssData.candidates[0].content) {
+      console.error('Invalid CSS response:', JSON.stringify(cssData));
+      throw new Error('فشل في الحصول على رد من CSS Agent');
+    }
+    
     const cssCode = cssData.candidates[0].content.parts[0].text.replace(/```css\n?/g, '').replace(/```\n?/g, '');
 
     await addAgentMessage('CSS Agent', 'خلصت التنسيق والصفحة بقت جميلة 💅');
@@ -499,6 +511,12 @@ ${cssCode}
     }
 
     const jsData = await jsResponse.json();
+    
+    if (!jsData.candidates || !jsData.candidates[0] || !jsData.candidates[0].content) {
+      console.error('Invalid JS response:', JSON.stringify(jsData));
+      throw new Error('فشل في الحصول على رد من JS Agent');
+    }
+    
     const jsCode = jsData.candidates[0].content.parts[0].text.replace(/```javascript\n?/g, '').replace(/```js\n?/g, '').replace(/```\n?/g, '');
 
     await addAgentMessage('JS Agent', 'ضفت كل التفاعلات المطلوبة 🎯');
@@ -568,6 +586,12 @@ ${jsCode}
     });
 
     const reviewData = await reviewResponse.json();
+    
+    if (!reviewData.candidates || !reviewData.candidates[0] || !reviewData.candidates[0].content) {
+      console.error('Invalid Review response:', JSON.stringify(reviewData));
+      throw new Error('فشل في الحصول على رد من Review Agent');
+    }
+    
     let reviewedCode = reviewData.candidates[0].content.parts[0].text;
     
     // Extract JSON from markdown code blocks if present
