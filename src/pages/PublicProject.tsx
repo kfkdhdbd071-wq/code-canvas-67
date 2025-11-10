@@ -17,6 +17,15 @@ const PublicProject = () => {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [showWelcomeDialog, setShowWelcomeDialog] = useState(true);
+  // Helpers: UUID validation and path normalization
+  const isValidUuid = (value: string) => /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/.test(value);
+  const normalizeRouteCandidates = (route: string | null) => {
+    if (!route) return [] as string[];
+    const decoded = decodeURIComponent(route);
+    const withSlash = decoded.startsWith('/') ? decoded : `/${decoded}`;
+    const withoutSlash = withSlash.replace(/^\/+/, '');
+    return Array.from(new Set([withSlash, withoutSlash]));
+  };
 
   useEffect(() => {
     if (identifier) {
@@ -26,8 +35,12 @@ const PublicProject = () => {
 
   const fetchProject = async () => {
     // Check if URL contains a subpage route (e.g., /p/main-id/article-1)
-    const pathParts = window.location.pathname.split('/').filter(Boolean);
+    const pathParts = window.location.pathname
+      .split('/')
+      .filter(Boolean)
+      .map((p) => decodeURIComponent(p));
     const subpageRoute = pathParts.length > 2 ? '/' + pathParts.slice(2).join('/') : null;
+    const subpageCandidates = normalizeRouteCandidates(subpageRoute);
 
     let query = supabase
       .from('projects')
@@ -44,7 +57,7 @@ const PublicProject = () => {
         .select('id')
         .eq('is_published', true);
       
-      if (parentIdentifier.length === 36) {
+      if (isValidUuid(parentIdentifier)) {
         parentQuery = parentQuery.eq('id', parentIdentifier);
       } else {
         parentQuery = parentQuery.eq('custom_url', parentIdentifier);
@@ -53,18 +66,17 @@ const PublicProject = () => {
       const { data: parentData } = await parentQuery.single();
       
       if (parentData) {
-        // Now look for subpage
+        const routes = subpageCandidates.length ? subpageCandidates : [subpageRoute!];
         query = query
           .eq('parent_project_id', parentData.id)
-          .eq('subpage_route', subpageRoute)
+          .in('subpage_route', routes)
           .eq('is_subpage', true);
       }
     } else {
-      // Regular project lookup
-      if (identifier!.length === 36) {
+      if (isValidUuid(identifier!)) {
         query = query.eq('id', identifier);
       } else {
-        query = query.eq('custom_url', identifier);
+        query = query.eq('custom_url', decodeURIComponent(identifier!));
       }
       
       // Make sure we're not getting a subpage
@@ -75,13 +87,13 @@ const PublicProject = () => {
 
     if ((error || !data) && !subpageRoute && identifier) {
       // Fallback: إذا زار المستخدم /p/article1.html مباشرةً
-      const fallbackRoute = '/' + identifier;
+      const candidates = normalizeRouteCandidates(identifier);
       const { data: subData } = await supabase
         .from('projects')
         .select('*')
         .eq('is_published', true)
         .eq('is_subpage', true)
-        .eq('subpage_route', fallbackRoute)
+        .in('subpage_route', candidates)
         .single();
 
       if (subData) {
