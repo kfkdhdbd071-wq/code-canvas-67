@@ -95,6 +95,44 @@ async function tryNextApiKey(supabase: any, currentIndex: number) {
   }
 }
 
+// Lovable AI fallback (OpenAI-compatible via Lovable gateway)
+async function callLovableAI(prompt: string, maxTokens = 8192): Promise<string | null> {
+  try {
+    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    if (!LOVABLE_API_KEY) {
+      console.error('LOVABLE_API_KEY not configured');
+      return null;
+    }
+    const resp = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-2.5-flash',
+        messages: [
+          { role: 'system', content: 'أنت وكيل يبني كود نظيف بدون شروحات. أرجع الكود فقط بدون أي علامات ```.' },
+          { role: 'user', content: prompt }
+        ],
+      }),
+    });
+    if (!resp.ok) {
+      console.error('Lovable AI error:', resp.status, await resp.text());
+      return null;
+    }
+    const json = await resp.json();
+    const content = json?.choices?.[0]?.message?.content;
+    if (typeof content === 'string' && content.trim()) {
+      return content.replace(/```[a-zA-Z]*\n?/g, '').replace(/```\n?/g, '');
+    }
+    return null;
+  } catch (e) {
+    console.error('Lovable AI exception:', e);
+    return null;
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -145,15 +183,7 @@ serve(async (req) => {
     console.log('Starting HTML Agent...');
     await addAgentMessage('HTML Agent', 'بدأت العمل على بناء هيكل الصفحة 🚀');
     
-    let htmlResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        contents: [{
-          parts: [{
-            text: `أنت وكيل متخصص في كتابة HTML عصري ومبدع. اكتب كود HTML5 حديث ومنظم بناءً على الفكرة المعطاة:
+    const htmlPrompt = `أنت وكيل متخصص في كتابة HTML عصري ومبدع. اكتب كود HTML5 حديث ومنظم بناءً على الفكرة المعطاة:
 
 - استخدم HTML5 الحديث مع اللغة العربية (lang="ar" dir="rtl")
 - أضف meta tags مناسبة للـ SEO
@@ -175,7 +205,17 @@ serve(async (req) => {
 
 الفكرة: ${idea}
 
-أرجع الكود فقط بدون شرح أو تعليقات.`
+أرجع الكود فقط بدون شرح أو تعليقات.`;
+
+    let htmlResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        contents: [{
+          parts: [{
+            text: htmlPrompt
           }]
         }],
         generationConfig: {
@@ -193,7 +233,6 @@ serve(async (req) => {
       const nextKey = await tryNextApiKey(supabase, currentKeyIndex);
       GEMINI_API_KEY = nextKey.key;
       currentKeyIndex = nextKey.index;
-      
       // Retry with new key
       htmlResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`, {
         method: 'POST',
@@ -203,29 +242,7 @@ serve(async (req) => {
         body: JSON.stringify({
           contents: [{
             parts: [{
-              text: `أنت وكيل متخصص في كتابة HTML عصري ومبدع. اكتب كود HTML5 حديث ومنظم بناءً على الفكرة المعطاة:
-
-- استخدم HTML5 الحديث مع اللغة العربية (lang="ar" dir="rtl")
-- أضف meta tags مناسبة للـ SEO
-- استخدم semantic HTML (header, main, section, article, footer)
-- أضف data attributes للعناصر التفاعلية
-- استخدم بنية واضحة ومنظمة تسهل التنسيق والتفاعل
-- أضف classes وصفية للعناصر المهمة
-
-⚠️ CRITICAL - المحتوى:
-- اكتب محتوى حقيقي ومفصل وواقعي 100%
-- ممنوع منعاً باتاً استخدام placeholders أو أمثلة وهمية
-- ممنوع كتابة "المثال 1" أو "الموقع 1" أو "المقال 1" أو "العنصر 1"
-- اكتب أسماء حقيقية ومعلومات واقعية تناسب الفكرة
-- إذا كانت الفكرة عن مواقع، اكتب أسماء مواقع حقيقية موجودة
-- إذا كانت عن منتجات، اكتب أسماء منتجات حقيقية
-- إذا كانت عن أشخاص، اكتب أسماء أشخاص حقيقيين
-- اكتب محتوى غني ومفيد وكامل بدون اختصارات
-- كل عنوان، نص، وصف يجب أن يكون محتوى حقيقي مكتوب بالكامل
-
-الفكرة: ${idea}
-
-أرجع الكود فقط بدون شرح أو تعليقات.`
+              text: htmlPrompt
             }]
           }],
           generationConfig: {
@@ -239,13 +256,19 @@ serve(async (req) => {
     }
 
     const htmlData = await htmlResponse.json();
-    
-    if (!htmlData.candidates || !htmlData.candidates[0] || !htmlData.candidates[0].content) {
+    let htmlCode: string | null = null;
+    if (htmlData.candidates && htmlData.candidates[0]?.content) {
+      htmlCode = htmlData.candidates[0].content.parts[0].text.replace(/```html\n?/g, '').replace(/```\n?/g, '');
+    } else {
       console.error('Invalid HTML response:', JSON.stringify(htmlData));
-      throw new Error('فشل في الحصول على رد من HTML Agent');
+      const lovableHTML = await callLovableAI(htmlPrompt, 8192);
+      if (lovableHTML) {
+        htmlCode = lovableHTML;
+        await addAgentMessage('HTML Agent', 'استخدمنا مزود بديل مؤقتًا بسبب حد الاستخدام ✅');
+      } else {
+        throw new Error('فشل في الحصول على رد من HTML Agent');
+      }
     }
-    
-    const htmlCode = htmlData.candidates[0].content.parts[0].text.replace(/```html\n?/g, '').replace(/```\n?/g, '');
 
     await addAgentMessage('HTML Agent', 'انتهيت من بناء الهيكل الأساسي للصفحة ✅');
     
@@ -262,15 +285,7 @@ serve(async (req) => {
     console.log('Starting CSS Agent...');
     await addAgentMessage('CSS Agent', 'تمام! هبدأ أنسق التصميم دلوقتي 🎨');
     
-    let cssResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        contents: [{
-          parts: [{
-            text: `أنت وكيل متخصص في كتابة CSS مبدع وعصري. اكتب كود CSS احترافي ومميز يناسب الكود HTML المعطى:
+    const cssPrompt = `أنت وكيل متخصص في كتابة CSS مبدع وعصري. اكتب كود CSS احترافي ومميز يناسب الكود HTML المعطى:
 
 CRITICAL CSS REQUIREMENTS:
 - استخدم تصميم عصري جداً مع ألوان متناسقة وجذابة
@@ -302,7 +317,17 @@ ${htmlCode}
 
 الفكرة: ${idea}
 
-أرجع الكود فقط بدون شرح أو تعليقات.`
+أرجع الكود فقط بدون شرح أو تعليقات.`;
+
+    let cssResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        contents: [{
+          parts: [{
+            text: cssPrompt
           }]
         }],
         generationConfig: {
@@ -320,7 +345,6 @@ ${htmlCode}
       const nextKey = await tryNextApiKey(supabase, currentKeyIndex);
       GEMINI_API_KEY = nextKey.key;
       currentKeyIndex = nextKey.index;
-      
       // Retry with new key
       cssResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`, {
         method: 'POST',
@@ -330,39 +354,7 @@ ${htmlCode}
         body: JSON.stringify({
           contents: [{
             parts: [{
-              text: `أنت وكيل متخصص في كتابة CSS مبدع وعصري. اكتب كود CSS احترافي ومميز يناسب الكود HTML المعطى:
-
-CRITICAL CSS REQUIREMENTS:
-- استخدم تصميم عصري جداً مع ألوان متناسقة وجذابة
-- أضف gradients مميزة وجميلة (linear-gradient, radial-gradient)
-- استخدم shadows متعددة المستويات لعمق التصميم (box-shadow, text-shadow)
-- أضف animations و transitions سلسة على جميع العناصر التفاعلية
-- استخدم modern CSS features (backdrop-filter, clip-path, transform)
-- أضف hover effects مميزة (scale, rotate, color changes)
-- استخدم keyframe animations للعناصر المهمة (@keyframes)
-- أضف smooth scrolling و scroll animations
-- استخدم CSS Grid و Flexbox للتخطيط
-- دعم كامل لـ RTL والعربية
-- تصميم responsive كامل
-- استخدم CSS variables للألوان والقيم المتكررة
-
-مثال للأنيميشن المطلوب:
-- fade-in animations للعناصر عند الظهور
-- slide-in من الجوانب
-- pulse و bounce للأزرار
-- gradient animations للخلفيات
-- hover transformations
-
-⚠️ CRITICAL - المحتوى:
-- صمم بناءً على المحتوى الحقيقي الموجود في HTML
-- لا تستخدم ألوان عامة، اختر ألوان تناسب المحتوى الفعلي
-
-HTML:
-${htmlCode}
-
-الفكرة: ${idea}
-
-أرجع الكود فقط بدون شرح أو تعليقات.`
+              text: cssPrompt
             }]
           }],
           generationConfig: {
@@ -376,13 +368,19 @@ ${htmlCode}
     }
 
     const cssData = await cssResponse.json();
-    
+    let cssCode: string | null = null;
     if (!cssData.candidates || !cssData.candidates[0] || !cssData.candidates[0].content) {
       console.error('Invalid CSS response:', JSON.stringify(cssData));
-      throw new Error('فشل في الحصول على رد من CSS Agent');
+      const lovableCSS = await callLovableAI(cssPrompt, 8192);
+      if (lovableCSS) {
+        cssCode = lovableCSS;
+        await addAgentMessage('CSS Agent', 'استخدمنا مزود بديل مؤقتًا بسبب حد الاستخدام ✅');
+      } else {
+        throw new Error('فشل في الحصول على رد من CSS Agent');
+      }
+    } else {
+      cssCode = cssData.candidates[0].content.parts[0].text.replace(/```css\n?/g, '').replace(/```\n?/g, '');
     }
-    
-    const cssCode = cssData.candidates[0].content.parts[0].text.replace(/```css\n?/g, '').replace(/```\n?/g, '');
 
     await addAgentMessage('CSS Agent', 'خلصت التنسيق والصفحة بقت جميلة 💅');
     
@@ -399,15 +397,7 @@ ${htmlCode}
     console.log('Starting JavaScript Agent...');
     await addAgentMessage('JS Agent', 'حلو! دوري دلوقتي أضيف التفاعلية ⚡');
     
-    let jsResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        contents: [{
-          parts: [{
-            text: `أنت وكيل متخصص في كتابة JavaScript حديث وتفاعلي. اكتب كود JavaScript مميز يضيف تفاعلية قوية للموقع:
+    const jsPrompt = `أنت وكيل متخصص في كتابة JavaScript حديث وتفاعلي. اكتب كود JavaScript مميز يضيف تفاعلية قوية للموقع:
 
 CRITICAL JS REQUIREMENTS:
 - استخدم ES6+ الحديث (const, let, arrow functions, async/await)
@@ -438,7 +428,17 @@ ${cssCode}
 
 الفكرة: ${idea}
 
-أرجع الكود فقط بدون شرح أو تعليقات.`
+أرجع الكود فقط بدون شرح أو تعليقات.`;
+
+    let jsResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        contents: [{
+          parts: [{
+            text: jsPrompt
           }]
         }],
         generationConfig: {
@@ -456,7 +456,6 @@ ${cssCode}
       const nextKey = await tryNextApiKey(supabase, currentKeyIndex);
       GEMINI_API_KEY = nextKey.key;
       currentKeyIndex = nextKey.index;
-      
       // Retry with new key
       jsResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`, {
         method: 'POST',
@@ -466,38 +465,7 @@ ${cssCode}
         body: JSON.stringify({
           contents: [{
             parts: [{
-              text: `أنت وكيل متخصص في كتابة JavaScript حديث وتفاعلي. اكتب كود JavaScript مميز يضيف تفاعلية قوية للموقع:
-
-CRITICAL JS REQUIREMENTS:
-- استخدم ES6+ الحديث (const, let, arrow functions, async/await)
-- أضف تفاعلات ديناميكية وسلسة لجميع العناصر
-- استخدم Intersection Observer لـ scroll animations
-- أضف smooth scrolling للروابط الداخلية
-- استخدم event delegation للأداء الأفضل
-- أضف loading states و transitions بين الحالات
-- استخدم requestAnimationFrame للأنيميشن السلس
-- أضف parallax effects إذا كان مناسباً
-- استخدم localStorage لحفظ التفضيلات إن أمكن
-- أضف keyboard navigation support
-- Form validation مع رسائل واضحة
-- Dynamic content loading
-- Smooth page transitions
-- Interactive hover effects
-
-⚠️ CRITICAL - المحتوى:
-- إذا كان هناك محتوى ديناميكي في JS (arrays, objects)، اكتب محتوى حقيقي
-- ممنوع استخدام "Item 1" أو "Example 1" في البيانات
-- اكتب بيانات واقعية تناسب الفكرة
-
-HTML:
-${htmlCode}
-
-CSS:
-${cssCode}
-
-الفكرة: ${idea}
-
-أرجع الكود فقط بدون شرح أو تعليقات.`
+              text: jsPrompt
             }]
           }],
           generationConfig: {
@@ -511,13 +479,19 @@ ${cssCode}
     }
 
     const jsData = await jsResponse.json();
-    
+    let jsCode: string | null = null;
     if (!jsData.candidates || !jsData.candidates[0] || !jsData.candidates[0].content) {
       console.error('Invalid JS response:', JSON.stringify(jsData));
-      throw new Error('فشل في الحصول على رد من JS Agent');
+      const lovableJS = await callLovableAI(jsPrompt, 8192);
+      if (lovableJS) {
+        jsCode = lovableJS;
+        await addAgentMessage('JS Agent', 'استخدمنا مزود بديل مؤقتًا بسبب حد الاستخدام ✅');
+      } else {
+        throw new Error('فشل في الحصول على رد من JS Agent');
+      }
+    } else {
+      jsCode = jsData.candidates[0].content.parts[0].text.replace(/```javascript\n?/g, '').replace(/```js\n?/g, '').replace(/```\n?/g, '');
     }
-    
-    const jsCode = jsData.candidates[0].content.parts[0].text.replace(/```javascript\n?/g, '').replace(/```js\n?/g, '').replace(/```\n?/g, '');
 
     await addAgentMessage('JS Agent', 'ضفت كل التفاعلات المطلوبة 🎯');
     
