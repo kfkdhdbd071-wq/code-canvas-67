@@ -50,7 +50,7 @@ const App = () => (
                 <AIAgentsContinue />
               </ProtectedRoute>
             } />
-            <Route path="/p/:identifier" element={<PublicProject />} />
+            <Route path="/p/:identifier/*" element={<PublicProject />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

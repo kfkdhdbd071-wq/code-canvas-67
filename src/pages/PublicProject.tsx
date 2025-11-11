@@ -133,10 +133,14 @@ const PublicProject = () => {
     );
   }
 
+  const projectIdentifierForBase = project.custom_url ?? project.id;
+  const absoluteBase = `${window.location.origin}/p/${encodeURIComponent(projectIdentifierForBase)}/`;
+
   const fullHTML = project.html_code
     .replace(
       '</head>',
-      `<style>${project.css_code}</style>
+      `<base href="${absoluteBase}" target="_top">
+<style>${project.css_code}</style>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&display=swap" rel="stylesheet">
 </head>`
     )
@@ -152,7 +156,7 @@ const PublicProject = () => {
         srcDoc={fullHTML}
         className="w-full h-screen border-0"
         title={project.project_name}
-        sandbox="allow-scripts allow-same-origin allow-forms allow-modals"
+        sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-top-navigation-by-user-activation"
       />
 
       <a
