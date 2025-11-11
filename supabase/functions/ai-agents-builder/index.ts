@@ -682,7 +682,7 @@ ${jsCode}
     console.log(`Found ${relativeLinks.size} relative links:`, Array.from(relativeLinks));
 
     if (relativeLinks.size > 0) {
-      await addAgentMessage('Publish Agent', `وجدت ${relativeLinks.size} صفحة فرعية، جاري إنشائها...`);
+      await addAgentMessage('Publish Agent', `🔍 وجدت ${relativeLinks.size} صفحة فرعية، جاري إنشائها بمحتوى ذكي...`);
       
       // Get existing subpages to avoid duplicates
       const { data: existingSubpages } = await supabase
@@ -695,50 +695,156 @@ ${jsCode}
         (existingSubpages || []).map(sp => sp.subpage_route)
       );
 
-      // Create subpages for new links only
-      const newSubpages = Array.from(relativeLinks)
-        .filter(link => !existingRoutes.has(link))
-        .map(link => ({
-          user_id: userId,
-          parent_project_id: projectId,
-          is_subpage: true,
-          subpage_route: link,
-          project_name: `${idea} - ${link}`,
-          html_code: `<!DOCTYPE html>
+      // Filter new links
+      const newLinks = Array.from(relativeLinks).filter(link => !existingRoutes.has(link));
+      
+      console.log(`Creating ${newLinks.length} new subpages with AI-generated content...`);
+      
+      if (newLinks.length > 0) {
+        // Generate content for each subpage using Lovable AI
+        const subpagesToCreate = [];
+        
+        for (const link of newLinks) {
+          const pageName = link.replace(/\//g, '').replace('.html', '').replace(/-/g, ' ').replace(/_/g, ' ');
+          console.log(`Generating content for subpage: ${pageName}`);
+          
+          // Create a prompt for generating subpage content
+          const subpagePrompt = `أنت مطور ويب محترف. المطلوب: إنشاء صفحة HTML كاملة ومفصلة لصفحة بعنوان "${pageName}".
+
+السياق: هذه الصفحة جزء من مشروع بعنوان "${idea}".
+
+المحتوى الأساسي للمشروع:
+${htmlContent.substring(0, 2000)}
+
+المطلوب:
+1. إنشاء صفحة HTML كاملة ومتكاملة بمحتوى حقيقي ومفصل (ليس placeholder)
+2. المحتوى يجب أن يكون متناسق مع فكرة المشروع الأساسي
+3. إضافة عناصر navigation للعودة للصفحة الرئيسية
+4. استخدام نفس النمط والأسلوب من الصفحة الرئيسية
+5. المحتوى بالعربية ومفصل (على الأقل 500 كلمة)
+6. إضافة meta tags مناسبة للـ SEO
+7. إضافة روابط داخلية لصفحات أخرى إذا كان مناسباً
+
+تأكد من أن المحتوى:
+- واقعي ومفيد للمستخدمين
+- منظم باستخدام headings و paragraphs
+- يحتوي على معلومات قيمة وليس نص تجريبي
+- متوافق مع موضوع "${pageName}"
+
+أرجع فقط كود HTML الكامل بدون أي شرح أو markdown.`;
+
+          try {
+            const aiHtml = await callLovableAI(subpagePrompt, 16000);
+            
+            if (aiHtml && aiHtml.trim().length > 100) {
+              console.log(`✅ Generated ${aiHtml.length} chars for ${pageName}`);
+              subpagesToCreate.push({
+                user_id: userId,
+                parent_project_id: projectId,
+                is_subpage: true,
+                subpage_route: link,
+                project_name: `${idea} - ${pageName}`,
+                html_code: aiHtml,
+                css_code: reviewed.css || cssCode,
+                js_code: reviewed.js || jsCode,
+                is_published: true,
+                show_in_community: false
+              });
+            } else {
+              console.log(`⚠️ AI failed for ${pageName}, using fallback`);
+              // Fallback with better default content
+              subpagesToCreate.push({
+                user_id: userId,
+                parent_project_id: projectId,
+                is_subpage: true,
+                subpage_route: link,
+                project_name: `${idea} - ${pageName}`,
+                html_code: `<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${link.replace(/\//g, '').replace('.html', '').replace(/-/g, ' ')}</title>
+    <meta name="description" content="صفحة ${pageName} - جزء من ${idea}">
+    <title>${pageName} - ${idea}</title>
 </head>
 <body>
-    <h1>صفحة: ${link}</h1>
-    <p>هذه الصفحة تم إنشاؤها تلقائياً. يمكنك تخصيص المحتوى من المحرر.</p>
+    <header>
+        <nav>
+            <a href="/">🏠 الرئيسية</a>
+        </nav>
+    </header>
+    <main>
+        <h1>${pageName}</h1>
+        <p>مرحباً بك في صفحة ${pageName}</p>
+        <p>هذه الصفحة جزء من مشروع ${idea}</p>
+        <section>
+            <h2>محتوى الصفحة</h2>
+            <p>يمكنك تخصيص محتوى هذه الصفحة من خلال المحرر.</p>
+        </section>
+    </main>
+    <footer>
+        <p>&copy; 2024 ${idea}</p>
+    </footer>
+</body>
+</html>`,
+                css_code: reviewed.css || cssCode,
+                js_code: reviewed.js || jsCode,
+                is_published: true,
+                show_in_community: false
+              });
+            }
+          } catch (err) {
+            console.error(`Error generating content for ${pageName}:`, err);
+            // Use fallback
+            subpagesToCreate.push({
+              user_id: userId,
+              parent_project_id: projectId,
+              is_subpage: true,
+              subpage_route: link,
+              project_name: `${idea} - ${pageName}`,
+              html_code: `<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${pageName}</title>
+</head>
+<body>
+    <h1>${pageName}</h1>
     <a href="/">العودة للرئيسية</a>
 </body>
 </html>`,
-          css_code: reviewed.css || cssCode,
-          js_code: reviewed.js || jsCode,
-          is_published: true,
-          show_in_community: false
-        }));
+              css_code: reviewed.css || cssCode,
+              js_code: reviewed.js || jsCode,
+              is_published: true,
+              show_in_community: false
+            });
+          }
+        }
 
-      if (newSubpages.length > 0) {
-        const { error: subpagesError } = await supabase
-          .from('projects')
-          .insert(newSubpages);
+        // Insert all subpages
+        if (subpagesToCreate.length > 0) {
+          console.log(`Inserting ${subpagesToCreate.length} subpages into database...`);
+          const { data: insertedData, error: subpagesError } = await supabase
+            .from('projects')
+            .insert(subpagesToCreate)
+            .select('id, subpage_route');
 
-        if (subpagesError) {
-          console.error('Error creating subpages:', subpagesError);
-          await addAgentMessage('Publish Agent', `⚠️ حدث خطأ في إنشاء ${newSubpages.length} صفحة فرعية`);
-        } else {
-          console.log(`Created ${newSubpages.length} subpages successfully`);
-          await addAgentMessage('Publish Agent', `✅ تم إنشاء ${newSubpages.length} صفحة فرعية بنجاح!`);
+          if (subpagesError) {
+            console.error('Error creating subpages:', subpagesError);
+            await addAgentMessage('Publish Agent', `⚠️ حدث خطأ في إنشاء الصفحات الفرعية: ${subpagesError.message}`);
+          } else {
+            console.log(`✅ Created ${insertedData?.length || 0} subpages successfully:`, insertedData);
+            await addAgentMessage('Publish Agent', `✅ تم إنشاء ${insertedData?.length || 0} صفحة فرعية بمحتوى ذكي ومفصل!`);
+          }
         }
       } else {
         console.log('All subpages already exist');
-        await addAgentMessage('Publish Agent', 'جميع الصفحات الفرعية موجودة مسبقاً');
+        await addAgentMessage('Publish Agent', 'جميع الصفحات الفرعية موجودة مسبقاً ✓');
       }
+    } else {
+      console.log('No relative links found in HTML');
+      await addAgentMessage('Publish Agent', 'لم يتم العثور على روابط لإنشاء صفحات فرعية');
     }
 
     console.log('All agents completed successfully!');
