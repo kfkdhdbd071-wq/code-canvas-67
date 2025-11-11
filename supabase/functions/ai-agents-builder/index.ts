@@ -648,6 +648,99 @@ ${jsCode}
       .eq('id', projectId);
 
     await addAgentMessage('Publish Agent', 'تم النشر بنجاح! المشروع جاهز 🎉');
+
+    // Extract relative links and create subpages
+    console.log('Extracting relative links for subpages...');
+    const htmlContent = reviewed.html || htmlCode;
+    const hrefRegex = /<a[^>]+href=["']([^"']+)["']/gi;
+    const relativeLinks = new Set<string>();
+    
+    let match;
+    while ((match = hrefRegex.exec(htmlContent)) !== null) {
+      const href = match[1].trim();
+      // Only process relative links (not http/https/mailto/#/javascript:)
+      if (
+        href && 
+        !href.startsWith('http://') && 
+        !href.startsWith('https://') && 
+        !href.startsWith('mailto:') && 
+        !href.startsWith('tel:') && 
+        !href.startsWith('#') && 
+        !href.startsWith('javascript:') &&
+        href !== '/' &&
+        href !== './' &&
+        href !== '../'
+      ) {
+        // Normalize the link (remove query params and anchors for route matching)
+        const normalizedLink = href.split('?')[0].split('#')[0];
+        if (normalizedLink && normalizedLink.length > 0) {
+          relativeLinks.add(normalizedLink.startsWith('/') ? normalizedLink : `/${normalizedLink}`);
+        }
+      }
+    }
+
+    console.log(`Found ${relativeLinks.size} relative links:`, Array.from(relativeLinks));
+
+    if (relativeLinks.size > 0) {
+      await addAgentMessage('Publish Agent', `وجدت ${relativeLinks.size} صفحة فرعية، جاري إنشائها...`);
+      
+      // Get existing subpages to avoid duplicates
+      const { data: existingSubpages } = await supabase
+        .from('projects')
+        .select('subpage_route')
+        .eq('parent_project_id', projectId)
+        .eq('is_subpage', true);
+
+      const existingRoutes = new Set(
+        (existingSubpages || []).map(sp => sp.subpage_route)
+      );
+
+      // Create subpages for new links only
+      const newSubpages = Array.from(relativeLinks)
+        .filter(link => !existingRoutes.has(link))
+        .map(link => ({
+          user_id: userId,
+          parent_project_id: projectId,
+          is_subpage: true,
+          subpage_route: link,
+          project_name: `${idea} - ${link}`,
+          html_code: `<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${link.replace(/\//g, '').replace('.html', '').replace(/-/g, ' ')}</title>
+</head>
+<body>
+    <h1>صفحة: ${link}</h1>
+    <p>هذه الصفحة تم إنشاؤها تلقائياً. يمكنك تخصيص المحتوى من المحرر.</p>
+    <a href="/">العودة للرئيسية</a>
+</body>
+</html>`,
+          css_code: reviewed.css || cssCode,
+          js_code: reviewed.js || jsCode,
+          is_published: true,
+          show_in_community: false
+        }));
+
+      if (newSubpages.length > 0) {
+        const { error: subpagesError } = await supabase
+          .from('projects')
+          .insert(newSubpages);
+
+        if (subpagesError) {
+          console.error('Error creating subpages:', subpagesError);
+          await addAgentMessage('Publish Agent', `⚠️ حدث خطأ في إنشاء ${newSubpages.length} صفحة فرعية`);
+        } else {
+          console.log(`Created ${newSubpages.length} subpages successfully`);
+          await addAgentMessage('Publish Agent', `✅ تم إنشاء ${newSubpages.length} صفحة فرعية بنجاح!`);
+        }
+      } else {
+        console.log('All subpages already exist');
+        await addAgentMessage('Publish Agent', 'جميع الصفحات الفرعية موجودة مسبقاً');
+      }
+    }
+
     console.log('All agents completed successfully!');
 
     return new Response(
