@@ -95,6 +95,41 @@ async function tryNextApiKey(supabase: any, currentIndex: number) {
   }
 }
 
+// Fallback via Lovable AI (OpenAI-compatible)
+async function callLovableAIForJSON(prompt: string): Promise<any | null> {
+  try {
+    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    if (!LOVABLE_API_KEY) return null;
+    const resp = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-2.5-flash',
+        messages: [
+          { role: 'system', content: 'أرجع JSON فقط بدون أي شروحات أو markdown.' },
+          { role: 'user', content: prompt }
+        ],
+      }),
+    });
+    if (!resp.ok) return null;
+    const json = await resp.json();
+    let content = json?.choices?.[0]?.message?.content || '';
+    content = String(content).replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    // Try parse, with fallback extraction
+    try {
+      return JSON.parse(content);
+    } catch {
+      const match = content.match(/\{[\s\S]*\}/);
+      return match ? JSON.parse(match[0]) : null;
+    }
+  } catch {
+    return null;
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -264,6 +299,31 @@ ${currentCode.js}
     if (!response.ok) {
       const errorData = await response.text();
       console.error('Gemini API error:', response.status, errorData);
+
+      // Fallback to Lovable AI gateway to avoid quota blocking
+      const lovablePrompt = `أنت وكيل يعدّل كود موقع ويب وفق طلب المستخدم ويُرجِع JSON فقط.
+\nالأكواد الحالية:
+HTML:\n${currentCode.html}
+\nCSS:\n${currentCode.css}
+\nJS:\n${currentCode.js}
+\nطلب المستخدم: ${message}
+\nأعد JSON فقط بالشكل التالي دون أي نص إضافي:
+{"html":"...","css":"...","js":"...","message":"..."}`;
+      const lovableResult = await callLovableAIForJSON(lovablePrompt);
+      if (lovableResult) {
+        return new Response(
+          JSON.stringify({
+            success: true,
+            code: {
+              html: lovableResult.html || currentCode.html,
+              css: lovableResult.css || currentCode.css,
+              js: lovableResult.js || currentCode.js,
+            },
+            message: lovableResult.message || 'تم التعديل بنجاح (Lovable AI)'
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
       throw new Error(`Gemini API error: ${response.status} - ${errorData}`);
     }
 

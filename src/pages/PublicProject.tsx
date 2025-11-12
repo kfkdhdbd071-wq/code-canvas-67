@@ -147,6 +147,30 @@ const PublicProject = () => {
     .replace(
       '</body>',
       `<script>${project.js_code}</script>
+<script>(function(){
+  try {
+    var BASE = '${absoluteBase}'.replace(/\/$/, '/')
+    document.addEventListener('click', function(ev){
+      var t = ev.target;
+      // Walk up to nearest anchor
+      while (t && t.tagName && t.tagName.toLowerCase() !== 'a') t = t.parentElement;
+      if (!t || !t.getAttribute) return;
+      var href = t.getAttribute('href');
+      if (!href) return;
+      // Ignore external and special schemes
+      if (/^(https?:|mailto:|tel:|javascript:)/i.test(href)) return;
+      ev.preventDefault();
+      var path = href;
+      if (href.startsWith('/')) path = href.slice(1);
+      var target = BASE + path;
+      if (window.top && window.top.location) {
+        window.top.location.assign(target);
+      } else {
+        window.location.assign(target);
+      }
+    }, true);
+  } catch(e) { /* noop */ }
+})();</script>
 </body>`
     );
 
