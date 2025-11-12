@@ -701,57 +701,114 @@ ${jsCode}
       console.log(`Creating ${newLinks.length} new subpages with AI-generated content...`);
       
       if (newLinks.length > 0) {
-        // Generate content for each subpage using Lovable AI
+        // Generate content for each subpage using Lovable AI with detailed prompts
         const subpagesToCreate = [];
+        const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
         
         for (const link of newLinks) {
           const pageName = link.replace(/\//g, '').replace('.html', '').replace(/-/g, ' ').replace(/_/g, ' ');
-          console.log(`Generating content for subpage: ${pageName}`);
+          console.log(`Generating detailed content for subpage: ${pageName} (${link})`);
           
-          // Create a prompt for generating subpage content
-          const subpagePrompt = `أنت مطور ويب محترف. المطلوب: إنشاء صفحة HTML كاملة ومفصلة لصفحة بعنوان "${pageName}".
+          // Determine page type
+          const route = link.toLowerCase();
+          let specificPrompt = '';
+          
+          if (route.includes('article') || route.includes('مقال') || route.includes('blog')) {
+            specificPrompt = `أنشئ مقالة كاملة بعنوان "${pageName}" تتضمن: مقدمة (150+ كلمة)، 4-5 أقسام، محتوى 1000+ كلمة، قوائم، اقتباسات، خاتمة، معلومات مؤلف، روابط مقالات ذات صلة.`;
+          } else if (route.includes('about') || route.includes('من-نحن')) {
+            specificPrompt = `أنشئ صفحة "من نحن" تتضمن: رؤية ورسالة، قصة التأسيس، قيم (5-7)، فريق (4-6 أعضاء)، إنجازات، أهداف، شهادات (3-5)، جدول زمني.`;
+          } else if (route.includes('contact') || route.includes('اتصل')) {
+            specificPrompt = `أنشئ صفحة اتصال تتضمن: نموذج HTML كامل، معلومات اتصال، عنوان، خريطة، ساعات عمل، FAQ (3-5 أسئلة).`;
+          } else if (route.includes('privacy') || route.includes('خصوصية')) {
+            specificPrompt = `أنشئ سياسة خصوصية شاملة تتضمن: مقدمة، أنواع البيانات، استخدام البيانات، حقوق المستخدمين، Cookies، أطراف ثالثة، أمان، احتفاظ، تحديثات.`;
+          } else if (route.includes('terms') || route.includes('شروط')) {
+            specificPrompt = `أنشئ شروط استخدام تتضمن: مقدمة، تعريفات، استخدام مسموح وممنوع، ملكية فكرية، حسابات، إخلاء مسؤولية، قانون حاكم.`;
+          } else if (route.includes('faq') || route.includes('أسئلة')) {
+            specificPrompt = `أنشئ صفحة FAQ تتضمن: 12-20 سؤال وجواب مفصّل، تصنيفات (عام، تقني، حسابات، مدفوعات)، accordion، نموذج "لم تجد إجابتك".`;
+          } else {
+            specificPrompt = `أنشئ صفحة شاملة "${pageName}": محتوى 800+ كلمة، عناوين منظمة، قوائم، أمثلة.`;
+          }
+          
+          const fullPrompt = `أنت خبير تطوير ويب. أنشئ صفحة HTML كاملة ومفصلة جداً.
 
-السياق: هذه الصفحة جزء من مشروع بعنوان "${idea}".
+**المشروع:** ${idea}
+**الصفحة:** ${pageName} (${link})
 
-المحتوى الأساسي للمشروع:
-${htmlContent.substring(0, 2000)}
+**السياق:**
+${htmlContent.substring(0, 1500)}
 
-المطلوب:
-1. إنشاء صفحة HTML كاملة ومتكاملة بمحتوى حقيقي ومفصل (ليس placeholder)
-2. المحتوى يجب أن يكون متناسق مع فكرة المشروع الأساسي
-3. إضافة عناصر navigation للعودة للصفحة الرئيسية
-4. استخدام نفس النمط والأسلوب من الصفحة الرئيسية
-5. المحتوى بالعربية ومفصل (على الأقل 500 كلمة)
-6. إضافة meta tags مناسبة للـ SEO
-7. إضافة روابط داخلية لصفحات أخرى إذا كان مناسباً
+**المحتوى المطلوب:**
+${specificPrompt}
 
-تأكد من أن المحتوى:
-- واقعي ومفيد للمستخدمين
-- منظم باستخدام headings و paragraphs
-- يحتوي على معلومات قيمة وليس نص تجريبي
-- متوافق مع موضوع "${pageName}"
+**متطلبات تقنية:**
+1. HTML5 كامل: <!DOCTYPE html>, lang="ar", dir="rtl"
+2. meta: charset, viewport, description (120-160 حرف), keywords (15-20), author
+3. og:tags: title, description, type, url, image
+4. Semantic HTML: header, nav, main, article, section, footer
+5. nav احترافية: روابط (الرئيسية، من نحن، اتصل بنا)
+6. breadcrumb: الرئيسية > القسم > الصفحة
+7. footer شامل
+8. inline CSS أساسي
 
-أرجع فقط كود HTML الكامل بدون أي شرح أو markdown.`;
+**جودة:**
+- عربية فصحى
+- محتوى واقعي ومفيد (ممنوع Lorem Ipsum)
+- 1000+ كلمة للمقالات، 500+ لغيرها
+- أمثلة واقعية
+
+أرجع HTML فقط بدون \`\`\`html أو شرح.`;
 
           try {
-            const aiHtml = await callLovableAI(subpagePrompt, 16000);
+            if (!lovableApiKey) throw new Error('No LOVABLE_API_KEY');
+
+            const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${lovableApiKey}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                model: 'google/gemini-2.5-flash',
+                messages: [
+                  { role: 'system', content: 'خبير صفحات ويب عربية احترافية. محتوى طويل ومفصل. HTML فقط بدون markdown.' },
+                  { role: 'user', content: fullPrompt }
+                ],
+                max_tokens: 16000,
+                temperature: 0.7,
+              }),
+            });
+
+            if (!aiResponse.ok) {
+              console.error(`AI failed for ${pageName}:`, aiResponse.status);
+              throw new Error(`AI HTTP ${aiResponse.status}`);
+            }
+
+            const aiData = await aiResponse.json();
+            let aiHtml = aiData.choices[0]?.message?.content || '';
+            aiHtml = aiHtml.replace(/```html\n?/g, '').replace(/```\n?/g, '').trim();
             
-            if (aiHtml && aiHtml.trim().length > 100) {
-              console.log(`✅ Generated ${aiHtml.length} chars for ${pageName}`);
-              subpagesToCreate.push({
-                user_id: userId,
-                parent_project_id: projectId,
-                is_subpage: true,
-                subpage_route: link,
-                project_name: `${idea} - ${pageName}`,
-                html_code: aiHtml,
-                css_code: reviewed.css || cssCode,
-                js_code: reviewed.js || jsCode,
-                is_published: true,
-                show_in_community: false
-              });
-            } else {
-              console.log(`⚠️ AI failed for ${pageName}, using fallback`);
+            if (aiHtml.length < 800 || (!aiHtml.includes('<!DOCTYPE') && !aiHtml.includes('<html'))) {
+              console.warn(`Low quality AI for ${pageName} (${aiHtml.length})`);
+              throw new Error('Low quality');
+            }
+            
+            console.log(`✅ ${aiHtml.length} chars for ${pageName}`);
+            subpagesToCreate.push({
+              user_id: userId,
+              parent_project_id: projectId,
+              is_subpage: true,
+              subpage_route: link,
+              project_name: `${idea} - ${pageName}`,
+              html_code: aiHtml,
+              css_code: reviewed.css || cssCode,
+              js_code: reviewed.js || jsCode,
+              is_published: true,
+              show_in_community: false
+            });
+            
+          } catch (error) {
+            console.error(`AI error for ${pageName}:`, error);
+            console.log(`Fallback for ${pageName}`);
               // Fallback with better default content
               subpagesToCreate.push({
                 user_id: userId,
