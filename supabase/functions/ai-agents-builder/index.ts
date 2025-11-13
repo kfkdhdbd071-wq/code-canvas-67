@@ -809,50 +809,7 @@ ${specificPrompt}
           } catch (error) {
             console.error(`AI error for ${pageName}:`, error);
             console.log(`Fallback for ${pageName}`);
-              // Fallback with better default content
-              subpagesToCreate.push({
-                user_id: userId,
-                parent_project_id: projectId,
-                is_subpage: true,
-                subpage_route: link,
-                project_name: `${idea} - ${pageName}`,
-                html_code: `<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="صفحة ${pageName} - جزء من ${idea}">
-    <title>${pageName} - ${idea}</title>
-</head>
-<body>
-    <header>
-        <nav>
-            <a href="/">🏠 الرئيسية</a>
-        </nav>
-    </header>
-    <main>
-        <h1>${pageName}</h1>
-        <p>مرحباً بك في صفحة ${pageName}</p>
-        <p>هذه الصفحة جزء من مشروع ${idea}</p>
-        <section>
-            <h2>محتوى الصفحة</h2>
-            <p>يمكنك تخصيص محتوى هذه الصفحة من خلال المحرر.</p>
-        </section>
-    </main>
-    <footer>
-        <p>&copy; 2024 ${idea}</p>
-    </footer>
-</body>
-</html>`,
-                css_code: reviewed.css || cssCode,
-                js_code: reviewed.js || jsCode,
-                is_published: true,
-                show_in_community: false
-              });
-            }
-          } catch (err) {
-            console.error(`Error generating content for ${pageName}:`, err);
-            // Use fallback
+            // Fallback with better default content
             subpagesToCreate.push({
               user_id: userId,
               parent_project_id: projectId,
