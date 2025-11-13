@@ -681,8 +681,15 @@ ${jsCode}
 
     console.log(`Found ${relativeLinks.size} relative links:`, Array.from(relativeLinks));
 
+    // If no links were found in HTML, fall back to a standard set of useful subpages
+    if (relativeLinks.size === 0) {
+      const fallbackRoutes = ['/about', '/contact', '/privacy', '/terms', '/faq', '/blog'];
+      fallbackRoutes.forEach((r) => relativeLinks.add(r));
+      console.log('No relative links found in HTML, using fallback routes:', fallbackRoutes);
+    }
+
     if (relativeLinks.size > 0) {
-      await addAgentMessage('Publish Agent', `🔍 وجدت ${relativeLinks.size} صفحة فرعية، جاري إنشائها بمحتوى ذكي...`);
+      await addAgentMessage('Publish Agent', `🔍 سيتم إنشاء ${relativeLinks.size} صفحة فرعية بمحتوى ذكي...`);
       
       // Get existing subpages to avoid duplicates
       const { data: existingSubpages } = await supabase
@@ -821,11 +828,27 @@ ${specificPrompt}
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${pageName}</title>
+    <meta name="description" content="صفحة ${pageName} - جزء من ${idea}">
+    <title>${pageName} - ${idea}</title>
 </head>
 <body>
-    <h1>${pageName}</h1>
-    <a href="/">العودة للرئيسية</a>
+    <header>
+        <nav>
+            <a href="/">🏠 الرئيسية</a>
+        </nav>
+    </header>
+    <main>
+        <h1>${pageName}</h1>
+        <p>مرحباً بك في صفحة ${pageName}</p>
+        <p>هذه الصفحة جزء من مشروع ${idea}</p>
+        <section>
+            <h2>محتوى الصفحة</h2>
+            <p>يمكنك تخصيص محتوى هذه الصفحة من خلال المحرر.</p>
+        </section>
+    </main>
+    <footer>
+        <p>&copy; 2024 ${idea}</p>
+    </footer>
 </body>
 </html>`,
               css_code: reviewed.css || cssCode,
