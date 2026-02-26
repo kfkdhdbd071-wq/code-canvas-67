@@ -16,7 +16,7 @@ const PublicProject = () => {
   const [project, setProject] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
-  const [showWelcomeDialog, setShowWelcomeDialog] = useState(true);
+  
   // Helpers: UUID validation and path normalization
   const isValidUuid = (value: string) => /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/.test(value);
   const normalizeRouteCandidates = (route: string | null) => {
@@ -183,61 +183,6 @@ const PublicProject = () => {
         sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-top-navigation-by-user-activation"
       />
 
-      <a
-        href="https://lumix-reseash.lovable.app/"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="fixed right-4 top-6 z-50 bg-primary text-primary-foreground px-3 py-1.5 rounded-full shadow-lg hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring transition"
-        aria-label="Made with Lumix"
-      >
-        make with lumix
-      </a>
-
-      {/* Welcome Dialog */}
-      <Dialog open={showWelcomeDialog} onOpenChange={setShowWelcomeDialog}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center justify-between">
-              مستضاف على Lumix Cloud
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setShowWelcomeDialog(false)}
-                className="h-6 w-6"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </DialogTitle>
-            <DialogDescription className="text-base pt-2 space-y-2">
-              <p>
-                هذا الموقع مستضاف على خدمة <strong>Lumix Cloud</strong>
-              </p>
-              <p>
-                منصة لعمل الأبحاث عن طريق الذكاء الاصطناعي
-              </p>
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex flex-col sm:flex-row gap-2 pt-4">
-            <Button
-              variant="outline"
-              onClick={() => setShowWelcomeDialog(false)}
-              className="w-full sm:w-auto"
-            >
-              إغلاق
-            </Button>
-            <Button
-              variant="default"
-              onClick={() => {
-                window.open('https://lumix-reseash.lovable.app/', '_blank');
-                setShowWelcomeDialog(false);
-              }}
-              className="w-full sm:w-auto"
-            >
-              زيارة الآن
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </>
   );
 };
